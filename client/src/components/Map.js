@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import './Map.css';
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiYWFsb2tvayIsImEiOiJjbTQ0aWFzZGIwMWJiMmpwdmF5eW9scG00In0.37IMozXO5K0eot3fZU-KSw';
+mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const Map = ({ geojsonData, isLoading }) => {
     const mapContainer = useRef(null);
@@ -54,9 +54,9 @@ const Map = ({ geojsonData, isLoading }) => {
         return connections;
     };
 
-    // Initialize map
+    // Initialize the map immediately; markers are added once data arrives
     useEffect(() => {
-        if (!mapInstance.current && !isLoading) {
+        if (!mapInstance.current) {
             mapInstance.current = new mapboxgl.Map({
                 container: mapContainer.current,
                 style: 'mapbox://styles/aalokok/cm469v2sd00r701qr9jr47x3i',
@@ -69,7 +69,7 @@ const Map = ({ geojsonData, isLoading }) => {
                 setMapInitialized(true);
             });
         }
-    }, [isLoading]);
+    }, []);
 
     // Add sources and layers once map is initialized and data is loaded
     useEffect(() => {

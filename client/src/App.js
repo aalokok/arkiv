@@ -13,7 +13,7 @@ function App() {
     const fetchGeoJSON = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('https://final351backend.onrender.com/api/markers');
+            const response = await fetch('/api/markers');
             const data = await response.json();
             setGeojsonData({
                 type: 'FeatureCollection',

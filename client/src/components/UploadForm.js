@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import './UploadForm.css';
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiYWFsb2tvayIsImEiOiJjbTQ0aWFzZGIwMWJiMmpwdmF5eW9scG00In0.37IMozXO5K0eot3fZU-KSw';
+mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const countries = [
     "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria",
@@ -154,7 +154,7 @@ const UploadForm = ({ onMarkerAdded }) => {
         }
 
         try {
-            const response = await fetch('https://final351backend.onrender.com/api/markers', {
+            const response = await fetch('/api/markers', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
