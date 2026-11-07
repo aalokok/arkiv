@@ -2,62 +2,127 @@
 .explore-map-container {
     width: 100%;
     height: 100vh;
-    background-image: url('Artboard1.png');
+    background: transparent; /* lets the dot grid show around the globe */
+    z-index: 1;
     position: fixed;
+    top: 0;  /* pinned to the screen (it used to start below the header and run off the bottom) */
+    left: 0;
     overflow: hidden;
 }
 
-/* Side Panel Popup */
+/* Marker details panel — same look as the upload form */
 .popup-side-panel {
-    position: fixed ;
+    position: fixed;
     overflow: auto;
     top: 0;
     right: 0;
-    width: 30%;
+    width: min(420px, 100%);
     height: 100%;
-    background: #fff;
-    border-left: 4px solid #000;
-    padding: 20px;
+    padding: 20px 28px 32px;
+    background: rgba(255, 255, 255, 0.96);
+    border-left: 1px solid var(--color-divider);
     display: flex;
     flex-direction: column;
     z-index: 1000;
+    font-family: var(--font-sans);
+    color: var(--color-text);
 }
 
 .popup-side-panel .close-button {
     align-self: flex-end;
-    font-size: 24px;
-    font-weight: bold;
+    padding: 0 4px;
+    font: inherit;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-gray);
     border: none;
     background: none;
     cursor: pointer;
 }
 
 .popup-side-panel .close-button:hover {
-    color: red;
+    color: var(--color-accent-text);
 }
 
 .popup-details {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-}
-
-.popup-details h3 {
-    font-family: 'Arial', Courier, monospace;
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.popup-details p {
-    font-family: 'Arial', Courier, monospace;
-    font-size: 16px;
-    margin: 5px 0;
+    gap: 18px;
 }
 
 .popup-details .popup-image {
     width: 100%;
     height: auto;
-    margin-top: 15px;
-    border: 2px solid #000;
+    border-radius: 3px;
+}
+
+.popup-details h3 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--color-text);
+}
+
+.popup-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-divider);
+}
+
+.popup-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray);
+}
+
+.popup-field p {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+/* Sparse gray dot grid behind the globe (Nothing-style: tiny dots, wide spacing) */
+.explore-dots {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(
+        circle,
+        var(--color-divider) 1.5px, /* pale gray (#d6d6d6), lighter than the logo */
+        transparent 2px
+    );
+    background-size: 120px 120px;
+    background-position: 60px 60px;
+}
+
+
+/* Hover preview on a dot: just the name, in the site's lowercase bold style.
+   Positioned at the dot's screen point (the map is pinned to the viewport's top-left). */
+.marker-tooltip {
+    position: fixed;
+    z-index: 5;                       /* above the globe, below the header and side panel */
+    transform: translate(14px, -50%); /* sits just to the right of the dot */
+    max-width: 260px;
+    padding: 6px 10px;
+    border: 1px solid var(--color-divider);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.95);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;             /* never steals the click from the dot underneath */
+}
+
+/* dots near the right edge: put the name on the left so it isn't cut off */
+.marker-tooltip.is-left {
+    transform: translate(calc(-100% - 14px), -50%);
 }

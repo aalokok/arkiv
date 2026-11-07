@@ -5,119 +5,128 @@
     box-sizing: border-box;
 }
 
-/* Header Styles */
+/* Header: logo, current-page toggle tucked against its top-right, + at the far end */
 header {
+    --nav-muted: var(--color-gray);       /* same gray as the logo */
+    --nav-accent: var(--color-accent-text); /* tokens.css */
+    --nav-current: var(--nav-accent);
+
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    background: rgba(189, 189, 189, 0.9);
+    align-items: flex-start;
+    gap: 6px;
+    padding: 16px 20px;
+    background: transparent; /* the site-wide gradient shows through (index.css) */
     position: relative;
     width: 100%;
     top: 0;
-    border-bottom: 2px solid #BDBDBDE5;
     z-index: 10;
+    font-family: var(--font-sans);
 }
 
 .header-logo {
-    font-family: 'Arial Black', Courier, monospace;
-    font-size: 36px;
-    font-weight: bold;
-    font-style: italic;
-    text-transform: lowercase;
-    color: #5a5959;
-    letter-spacing: 2px;
+    line-height: 0;
+    padding-top: 14px; /* drops the logo so the menu sits at its top edge */
+}
+
+.header-logo img {
+    height: 40px;
+    width: auto;
+    display: block;
 }
 
 .nav {
     display: flex;
-    gap: 15px;
-    flex-wrap: wrap; /* Ensure navigation wraps on smaller screens */
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.nav-current,
+.nav-link {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: lowercase;
+    text-decoration: none;
+}
+
+.nav-current {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--nav-current);
+}
+
+.nav-current:focus-visible,
+.nav-link:focus-visible,
+.nav-plus:focus-visible {
+    outline: 2px solid var(--nav-accent);
+    outline-offset: 3px;
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    list-style: none;
+}
+
+.nav-menu li {
+    display: flex;
+    align-items: center;
 }
 
 .nav-link {
-    font-family: 'Arial', Courier, monospace;
-    font-size: 16px;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: #ffffff;
-    padding: 10px 15px;
-    border: 2px solid #ffffff;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    color: var(--nav-muted);
+    transition: color 0.2s ease;
 }
 
 .nav-link:hover {
-    background-color: #000;
-    color: #fff;
+    color: var(--nav-accent);
 }
 
-/* Upload Link as a Square Button */
-.upload-link {
-    font-size: 18px;
-    font-weight: bold;
+.nav-sep {
+    width: 2px;
+    height: 22px;
+    margin: 0 10px;
+    background: var(--color-divider);
+}
+
+/* Bold upload shortcut at the far end */
+.nav-plus {
+    margin-left: auto;
+    align-self: center;
     display: flex;
-    justify-content: center;
     align-items: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: 2px solid #ffffff;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--color-secondary-periwinkle);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--nav-accent);
+    transition: background-color 0.2s ease;
 }
 
-.upload-link:hover {
-    background-color: #000;
-    color: #fff;
+.nav-plus:hover {
+    background-color: rgba(var(--color-secondary-peach-rgb), 0.35);
 }
 
-/* Responsive Design */
+/* Tablets */
 @media (max-width: 768px) {
-    header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px 15px;
-    }
-
-    .header-logo {
-        font-size: 24px;
-    }
-
-    .nav {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .nav-link {
-        font-size: 14px;
-        padding: 8px 12px;
-    }
-
-    .upload-link {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
-    }
+    header { padding: 12px 15px; }
+    .header-logo { padding-top: 11px; }
+    .header-logo img { height: 32px; }
+    .nav-current, .nav-link { font-size: 20px; }
+    .nav-sep { height: 17px; margin: 0 8px; }
+    .nav-plus { width: 40px; height: 40px; font-size: 30px; }
 }
 
+/* Phones */
 @media (max-width: 480px) {
-    .header-logo {
-        font-size: 20px;
-    }
-
-    .nav {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .nav-link {
-        font-size: 12px;
-        padding: 6px 10px;
-    }
-
-    .upload-link {
-        width: 30px;
-        height: 30px;
-        font-size: 14px;
-    }
-
+    .header-logo { padding-top: 9px; }
+    .header-logo img { height: 26px; }
+    .nav-current, .nav-link { font-size: 16px; }
+    .nav-sep { height: 14px; margin: 0 6px; }
+    .nav-plus { width: 34px; height: 34px; font-size: 24px; }
 }

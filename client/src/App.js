@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Map from './components/Map';
 import UploadForm from './components/UploadForm';
+import Landing from './components/Landing';
+import About from './components/About';
 import './App.css';
+
+// The landing page is full-screen and brings its own logo, so it has no header.
+const HeaderOutsideLanding = () => (useLocation().pathname === '/' ? null : <Header />);
 
 function App() {
     const [geojsonData, setGeojsonData] = useState(null); // Start with null instead of empty object
@@ -36,10 +41,12 @@ function App() {
 
     return (
         <Router>
-            <Header />
+            <HeaderOutsideLanding />
             <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/about" element={<About />} />
                 <Route
-                    path="/"
+                    path="/explore"
                     element={
                         <Map
                             geojsonData={geojsonData}

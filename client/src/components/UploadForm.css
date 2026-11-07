@@ -1,158 +1,367 @@
-.upload-form-container {
-    display: flex;
-    flex-direction: row-reverse;
-    width: 100%;
-    height: 92vh;
-    position: relative;
-    background-color: #f5f5f5;
-    overflow: hidden;
+/* Upload page — follows the site's look: lowercase ABC Areal, pale gray lines,
+   periwinkle accents, blur-to-sharp icons, and the gray dot grid behind the globe. */
+
+.upload-page {
+    --upload-line: var(--color-divider);
+    --upload-accent: var(--color-accent-text);
+    --upload-header: 90px; /* approx. header height, so the globe fills the rest */
+
+    font-family: var(--font-sans);
+    color: var(--color-text);
 }
 
-/* Map Container */
-.map-container {
-    width: 70%;
-    height: 93vh;
-    position: relative;
-
+.upload-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 460px) 1fr;
+    gap: clamp(24px, 4vw, 64px);
+    min-height: calc(100vh - var(--upload-header));
+    padding: 8px clamp(16px, 4vw, 56px) 24px;
 }
 
-.upload-map-container {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-/* Form Section */
-.upload-form {
-    width: 30%;
-    height: 100vh;
-    padding: 24px;
-    background-color: #fff;
-    border-left: 4px solid #000;
+/* ── Left: photo & details ─────────────────────────── */
+.upload-details {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    gap: 22px;
+    padding-top: 8px;
 }
 
-.form-scrollable {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 16px;
+.upload-step {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray);
 }
 
-.form-title {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 24px;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-    border-bottom: 3px solid #000;
-    padding-bottom: 10px;
-}
-
-/* Form Fields */
-.form-group {
-    margin-bottom: 16px;
-}
-
-label {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 6px;
-    display: block;
-}
-
-input, select, textarea {
-    width: 100%;
-    padding: 10px;
-    font-size: 13px;
-    margin-bottom: 16px;
-    border: 2px solid #000;
-    background-color: #fff;
-    color: #000;
-    font-family: 'Courier New', Courier, monospace;
+/* Photo drop zone: blurred gray icon at rest, sharp periwinkle on hover/drag (like the landing page) */
+.upload-drop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 230px;
+    padding: 20px;
+    border: 1px dashed var(--upload-line);
     border-radius: 4px;
+    transition: border-color var(--motion-medium) ease, background-color var(--motion-medium) ease;
 }
 
-textarea {
-    min-height: 80px;
-    resize: vertical;
+.upload-drop:hover,
+.upload-drop.is-dragging {
+    border-color: var(--upload-accent);
+    background: radial-gradient(circle closest-side,
+        rgba(var(--color-secondary-periwinkle-rgb), 0.22), transparent);
 }
 
-/* New Submit Button Style */
-.submit-button-container {
-    position: absolute;
-    bottom: 40px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: 50%;
-}
-
-.submit-button {
-    background-color: #000;
-    color: #fff;
-    padding: 20px 40px;
-    font-size: 24px;
-    font-weight: bold;
-    text-transform: uppercase;
+.upload-drop-target {
+    background: none;
     border: none;
-    border-radius: 8px;
+    padding: 0;
     cursor: pointer;
-    transition: all 0.3s ease;
+    color: var(--color-gray-light);
+}
+
+.upload-drop-icon {
+    display: block;
+    width: 110px;
+    filter: blur(3px);
+    opacity: 0.7;
+    transition: filter var(--motion-medium) ease, opacity var(--motion-medium) ease, color var(--motion-medium) ease;
+}
+
+.upload-drop:hover .upload-drop-icon,
+.upload-drop.is-dragging .upload-drop-icon,
+.upload-drop-target:focus-visible .upload-drop-icon {
+    filter: none;
+    opacity: 1;
+    color: var(--upload-accent);
+}
+
+.upload-drop-target:focus-visible { outline: none; }
+
+.upload-drop-icon svg { display: block; width: 100%; height: auto; }
+
+.upload-preview {
+    display: block;
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 3px;
+    object-fit: contain;
+}
+
+.upload-drop-actions {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-gray);
+}
+
+/* Fields: just a pale underline, lowercase bold text */
+.upload-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.upload-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-gray);
+}
+
+.upload-field input,
+.upload-field textarea {
     width: 100%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    padding: 6px 0 10px;
+    border: none;
+    border-bottom: 1px solid var(--upload-line);
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--color-text);
+    resize: none;
+    transition: border-color var(--motion-fast) ease;
 }
 
-.submit-button:hover {
-    background-color: #333;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+.upload-field input::placeholder,
+.upload-field textarea::placeholder {
+    color: var(--upload-line);
 }
 
-.submit-button:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.upload-field input:focus,
+.upload-field textarea:focus {
+    outline: none;
+    border-bottom-color: var(--upload-accent);
 }
 
-/* Map Instructions */
-.map-instructions {
+.upload-field [aria-invalid='true'] {
+    border-bottom-color: var(--color-secondary-peach);
+}
+
+/* empty date input: show the browser's yyyy-mm-dd hint in the pale placeholder color */
+.upload-field input[type='date'].is-empty:not(:focus) {
+    color: var(--upload-line);
+}
+
+.upload-error {
+    margin-top: -14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #c2410c;
+}
+
+/* ── Buttons (same family as the header's + box) ───── */
+.upload-button {
+    padding: 12px 22px;
+    border: 1px solid var(--upload-accent);
+    background: transparent;
+    color: var(--upload-accent);
+    font: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) ease;
+}
+
+.upload-button:hover { background: rgba(var(--color-secondary-peach-rgb), 0.35); }
+.upload-button:focus-visible { outline: 2px solid var(--upload-accent); outline-offset: 3px; }
+.upload-button:disabled { cursor: progress; }
+
+.upload-button.is-busy { animation: upload-pulse 1.4s ease-in-out infinite; }
+
+@keyframes upload-pulse {
+    50% { opacity: 0.45; }
+}
+
+.upload-link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--upload-accent);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.upload-link:hover { text-decoration: underline; }
+
+.upload-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* primary actions sit on the right */
+    gap: 18px;
+}
+
+.upload-actions--split { justify-content: space-between; }
+
+.upload-submit-row {
+    display: flex;
+    flex-direction: row-reverse; /* button on the right, status message to its left */
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    margin-top: 4px;
+}
+
+.upload-status {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+/* ── Right: globe with the dot grid behind it ──────── */
+.upload-location {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: calc(100vh - var(--upload-header) - 32px);
+}
+
+.globe-picker {
+    position: relative;
+    flex: 1;
+    min-height: 320px;
+}
+
+.globe-picker-dots {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    background-color: rgba(255, 255, 255, 0.95);
-    padding: 12px 20px;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    z-index: 1000;
-    max-width: 300px;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, var(--color-divider) 1.5px, transparent 2px);
+    background-size: 120px 120px;
+    background-position: 60px 60px;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .upload-form-container {
+.globe-picker-map {
+    position: absolute;
+    inset: 0;
+}
+
+.globe-picker-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.globe-picker-bar > * { pointer-events: auto; }
+
+.globe-picker-hint {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-gray);
+}
+
+/* ── Done ──────────────────────────────────────────── */
+.upload-page--done {
+    display: flex;
+    justify-content: center;
+    padding-top: 14vh;
+}
+
+.upload-done {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.upload-done-title {
+    font-size: clamp(56px, 9vw, 120px);
+    font-weight: 700;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: var(--upload-accent);
+}
+
+.upload-done-text {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-gray);
+    margin-bottom: 14px;
+}
+
+/* ── Camera modal ──────────────────────────────────── */
+.upload-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(250, 250, 250, 0.85);
+    backdrop-filter: blur(6px);
+    font-family: var(--font-sans);
+}
+
+.upload-modal-card {
+    width: min(720px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.camera-video {
+    width: 100%;
+    max-height: 70vh;
+    border-radius: 4px;
+    background: #000;
+    object-fit: cover;
+}
+
+.upload-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+}
+
+/* ── Phones: two steps, one column ─────────────────── */
+@media (max-width: 760px) {
+    .upload-page { --upload-header: 70px; }
+
+    .upload-layout {
+        grid-template-columns: 1fr;
+        padding: 4px 16px 24px;
+    }
+
+    .upload-field input,
+    .upload-field textarea { font-size: 20px; }
+
+    .upload-drop { min-height: 190px; }
+
+    .upload-location {
+        position: static;
+        height: calc(100vh - var(--upload-header) - 40px);
+        height: calc(100dvh - var(--upload-header) - 40px);
+    }
+
+    .globe-picker-bar {
         flex-direction: column;
+        gap: 4px;
     }
+}
 
-    .upload-form {
-        width: 100%;
-        height: 50vh;
-        border-left: none;
-        border-top: 4px solid #000;
-        order: 2;
-    }
-
-    .map-container {
-        width: 100%;
-        height: 50vh;
-        order: 1;
-    }
-
-    .submit-button-container {
-        width: 80%;
-        bottom: 20px;
-    }
+@media (prefers-reduced-motion: reduce) {
+    .upload-button.is-busy { animation: none; }
 }
