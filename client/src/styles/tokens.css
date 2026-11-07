@@ -1,0 +1,44 @@
+/*
+ * arkiv design system: the single source of truth for colors and type.
+ * Every stylesheet (and the Mapbox globe, via mapTheme.js) reads these tokens,
+ * so a color change here updates the whole site.
+ */
+
+:root {
+    /* ── Brand ─────────────────────────────────────────── */
+    --color-primary: #D6FFB2;            /* lime: globe land, prompts, active nav, accents */
+    --color-primary-rgb: 214, 255, 178;
+
+    --color-secondary-peach: #FFC5B3;    /* warm glow, landing hover panel */
+    --color-secondary-peach-rgb: 255, 197, 179;
+
+    --color-secondary-periwinkle: #B3C0FF; /* cool glow */
+    --color-secondary-periwinkle-rgb: 179, 192, 255;
+
+    /* ── Roles ─────────────────────────────────────────── */
+    /* brand text on the light page: periwinkle reads best of the palette (green ≈ 1.1:1 on white) */
+    --color-accent-text: var(--color-secondary-periwinkle);
+
+    /* ── Map ───────────────────────────────────────────── */
+    --color-marker: var(--color-secondary-peach); /* photo dots: stand out on green land and from periwinkle text */
+    --color-marker-stroke: #ffffff;
+
+    /* ── Neutrals ──────────────────────────────────────── */
+    --color-bg: #fafafa;                 /* page white */
+    --color-surface: #ffffff;            /* panels and form cards */
+    --color-gray: #aeaeae;               /* logo gray, inactive nav */
+    --color-gray-light: #bdbdbd;         /* resting landing labels/icons */
+    --color-divider: #d6d6d6;            /* nav separators */
+    --color-text: #5a5959;               /* body copy */
+    --color-ink: #000000;                /* borders, buttons */
+
+    /* ── Typography ────────────────────────────────────── */
+    --font-sans: 'ABC Areal', 'Helvetica Neue', Arial, sans-serif;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 700;
+
+    /* ── Motion ────────────────────────────────────────── */
+    --motion-fast: 0.2s;
+    --motion-medium: 0.25s;
+}

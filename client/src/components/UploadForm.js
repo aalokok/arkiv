@@ -1,294 +1,297 @@
-import React, { useState, useEffect, useRef } from 'react';
-import mapboxgl from 'mapbox-gl';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './UploadForm.css';
+import CameraCapture from './CameraCapture';
+import LocationPicker, { countryForPoint } from './LocationPicker';
 
-mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/digb5lz1t/image/upload';
+const CLOUDINARY_PRESET = 'archive';
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // Cloudinary's free-plan limit
+const PHONE_QUERY = '(max-width: 760px)';
 
-const countries = [
-    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria",
-    "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan",
-    "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia",
-    "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica",
-    "Croatia", "Cuba", "Cyprus", "Czechia (Czech Republic)", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt",
-    "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini (fmr. Swaziland)", "Ethiopia", "Fiji", "Finland", "France", "Gabon",
-    "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
-    "Haiti", "Holy See", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland",
-    "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea (North)", "Korea (South)",
-    "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein",
-    "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania",
-    "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar (formerly Burma)",
-    "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway",
-    "Oman", "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland",
-    "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino",
-    "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands",
-    "Somalia", "South Africa", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
-    "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan",
-    "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela",
-    "Vietnam", "Yemen", "Zambia", "Zimbabwe"
-];
+const EMPTY_FORM = { name: '', yourName: '', caption: '', date: '', location: null };
+
+// Phones/tablets open the native camera through <input capture>; desktops get the webcam modal.
+const isTouchDevice = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+const canUseWebcam = () => Boolean(navigator.mediaDevices?.getUserMedia);
+
+const useIsPhone = () => {
+    const [isPhone, setIsPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches);
+    useEffect(() => {
+        const mq = window.matchMedia(PHONE_QUERY);
+        const onChange = () => setIsPhone(mq.matches);
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+    return isPhone;
+};
+
+const ImageAddIcon = () => (
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeWidth="4"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M40 12H14a6 6 0 0 0-6 6v32a6 6 0 0 0 6 6h32a6 6 0 0 0 6-6V30" />
+        <path d="M8 44l12-12 22 22" />
+        <path d="M36 44l6-6 10 10" />
+        <path d="M52 4v16M44 12h16" />
+    </svg>
+);
+
+async function uploadToCloudinary(file) {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('upload_preset', CLOUDINARY_PRESET);
+    const res = await fetch(CLOUDINARY_URL, { method: 'POST', body });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.secure_url) throw new Error('image');
+    return data.secure_url;
+}
+
 const UploadForm = ({ onMarkerAdded }) => {
-    const mapContainer = useRef(null);
-    const mapInstance = useRef(null);
+    const isPhone = useIsPhone();
+    const [step, setStep] = useState(1); // phone only: 1 = photo & details, 2 = location
+    const [form, setForm] = useState(EMPTY_FORM);
+    const [imageFile, setImageFile] = useState(null);
+    const [preview, setPreview] = useState('');
+    const [dragging, setDragging] = useState(false);
+    const [cameraOpen, setCameraOpen] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [status, setStatus] = useState('idle'); // idle | uploading | saving | done | failed
+    const [failure, setFailure] = useState('');
 
-    const [formData, setFormData] = useState({
-        owner: '',
-        photographer: '',
-        story: '',
-        date: '',
-        usage: 'open',
-        email: '',
-        equipment: '',
-        country: '',
-        image: null,
-        location: null,
-    });
-
-    const [markerData, setMarkerData] = useState({
-        type: 'FeatureCollection',
-        features: [],
-    });
+    const fileInputRef = useRef(null);
+    const cameraInputRef = useRef(null);
 
     useEffect(() => {
-        if (!mapInstance.current) {
-            mapInstance.current = new mapboxgl.Map({
-                container: mapContainer.current,
-                style: 'mapbox://styles/aalokok/cm469v2sd00r701qr9jr47x3i',
-                center: [0, 0],
-                zoom: 1.5,
-                projection: 'globe',
-            });
+        if (!imageFile) { setPreview(''); return undefined; }
+        const url = URL.createObjectURL(imageFile);
+        setPreview(url);
+        return () => URL.revokeObjectURL(url);
+    }, [imageFile]);
 
-            mapInstance.current.on('load', () => {
-                mapInstance.current.addSource('marker', {
-                    type: 'geojson',
-                    data: markerData,
-                });
-
-                mapInstance.current.addLayer({
-                    id: 'marker-layer',
-                    type: 'circle',
-                    source: 'marker',
-                    paint: {
-                        'circle-radius': 8,
-                        'circle-color': '#FF0000',
-                    },
-                });
-
-                mapInstance.current.on('click', (e) => {
-                    const { lng, lat } = e.lngLat;
-                    const newMarker = {
-                        type: 'Feature',
-                        geometry: {
-                            type: 'Point',
-                            coordinates: [lng, lat],
-                        },
-                    };
-
-                    setMarkerData({
-                        type: 'FeatureCollection',
-                        features: [newMarker],
-                    });
-
-                    setFormData((prev) => ({ ...prev, location: [lng, lat] }));
-                });
-            });
-        }
-
-        if (mapInstance.current && mapInstance.current.isStyleLoaded()) {
-            const source = mapInstance.current.getSource('marker');
-            if (source) {
-                source.setData(markerData);
-            }
-        }
-    }, [markerData]);
+    const clearError = (key) => setErrors((prev) => ({ ...prev, [key]: undefined }));
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        setForm((prev) => ({ ...prev, [name]: value }));
+        clearError(name);
     };
 
-    const handleImageUpload = async (file) => {
-        const cloudinaryUrl = 'https://api.cloudinary.com/v1_1/digb5lz1t/image/upload';
-        const uploadPreset = 'archive';
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', uploadPreset);
-
-        try {
-            const response = await fetch(cloudinaryUrl, {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.json();
-            return data.secure_url; // Return the URL of the uploaded image
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            return null;
+    const acceptFile = useCallback((file) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setErrors((prev) => ({ ...prev, image: 'that file isn’t an image' }));
+            return;
         }
+        if (file.size > MAX_IMAGE_BYTES) {
+            setErrors((prev) => ({ ...prev, image: 'images need to be under 10 mb' }));
+            return;
+        }
+        setImageFile(file);
+        setErrors((prev) => ({ ...prev, image: undefined }));
+    }, []);
+
+    const takePhoto = () => {
+        if (isTouchDevice() || !canUseWebcam()) cameraInputRef.current?.click();
+        else setCameraOpen(true);
+    };
+    const closeCamera = useCallback(() => setCameraOpen(false), []);
+    const onCaptured = useCallback((file) => { setCameraOpen(false); acceptFile(file); }, [acceptFile]);
+
+    const setLocation = useCallback((point) => {
+        setForm((prev) => ({ ...prev, location: point }));
+        setErrors((prev) => ({ ...prev, location: undefined }));
+    }, []);
+
+    const detailErrors = () => {
+        const next = {};
+        if (!imageFile) next.image = 'add a photo';
+        if (!form.name.trim()) next.name = 'add a name';
+        if (!form.yourName.trim()) next.yourName = 'add your name';
+        if (!form.caption.trim()) next.caption = 'add a caption';
+        if (!form.date) next.date = 'pick a date';
+        return next;
+    };
+
+    const goToLocation = () => {
+        const next = detailErrors();
+        setErrors(next);
+        if (Object.keys(next).length === 0) setStep(2);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (status === 'uploading' || status === 'saving') return; // no double submits
 
-        if (!formData.location) {
-            alert('Please drop a marker on the map to select a location.');
+        const next = detailErrors();
+        if (!form.location) next.location = 'drop a pin on the globe';
+        setErrors(next);
+        if (Object.keys(next).length) {
+            if (isPhone && Object.keys(next).some((k) => k !== 'location')) setStep(1);
             return;
         }
 
-        if (!formData.country) {
-            alert('Please select a country.');
-            return;
-        }
-
-        let updatedFormData = { ...formData }; // Clone formData
-
-        const imageFile = document.getElementById('image').files[0];
-        if (imageFile) {
-            const imageUrl = await handleImageUpload(imageFile);
-            if (!imageUrl) {
-                alert('Image upload failed. Please try again.');
-                return;
-            }
-            updatedFormData = { ...updatedFormData, image: imageUrl }; // Add the image URL
-        }
-
+        setFailure('');
         try {
-            const response = await fetch('/api/markers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updatedFormData), // Send updated formData
-            });
+            setStatus('uploading');
+            const [image, country] = await Promise.all([
+                uploadToCloudinary(imageFile),
+                countryForPoint(form.location),
+            ]);
 
-            if (response.ok) {
-                alert('Upload successful!');
-                onMarkerAdded();
-            } else {
-                alert('Error uploading data.');
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
+            setStatus('saving');
+            const res = await fetch('/api/markers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner: form.name.trim(),      // shown as the title on the globe
+                    photographer: form.yourName.trim(), // shown as "by" on the globe
+                    story: form.caption.trim(),
+                    date: form.date,
+                    location: form.location,
+                    country,
+                    image,
+                    usage: 'open',
+                }),
+            });
+            if (!res.ok) throw new Error('save');
+
+            setStatus('done');
+            onMarkerAdded?.();
+        } catch (err) {
+            setStatus('failed');
+            setFailure(err.message === 'save'
+                ? 'the photo uploaded but saving failed — try again'
+                : 'the photo couldn’t upload — check your connection and try again');
         }
     };
 
+    const startOver = () => {
+        setForm(EMPTY_FORM);
+        setImageFile(null);
+        setErrors({});
+        setStatus('idle');
+        setStep(1);
+    };
+
+    const busy = status === 'uploading' || status === 'saving';
+    const showDetails = !isPhone || step === 1;
+    const showGlobe = !isPhone || step === 2;
+
+    if (status === 'done') {
+        return (
+            <main className="upload-page upload-page--done">
+                <div className="upload-done">
+                    <p className="upload-done-title">uploaded</p>
+                    <p className="upload-done-text">your photo is on the globe</p>
+                    <div className="upload-actions">
+                        <Link to="/explore" className="upload-button">see it</Link>
+                        <button type="button" className="upload-link" onClick={startOver}>upload another</button>
+                    </div>
+                </div>
+            </main>
+        );
+    }
 
     return (
-        <div className="upload-form-container">
-            <div className="upload-form">
-                <div className="form-scrollable">
-                    <h1 className="form-title">Upload</h1>
-                    <form>
-                        <div className="form-group">
-                            <label htmlFor="owner">Title:</label>
-                            <input
-                                type="text"
-                                id="owner"
-                                name="owner"
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
+        <main className="upload-page">
+            <form className="upload-layout" onSubmit={handleSubmit} noValidate>
+                {showDetails && (
+                    <section className="upload-details">
+                        {isPhone && <p className="upload-step">1 / 2 · photo & details</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="photographer">Photographer:</label>
-                            <input
-                                type="text"
-                                id="photographer"
-                                name="photographer"
-                                onChange={handleChange}
-                            />
+                        <div
+                            className={'upload-drop' + (dragging ? ' is-dragging' : '') + (preview ? ' has-image' : '')}
+                            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                            onDragLeave={() => setDragging(false)}
+                            onDrop={(e) => { e.preventDefault(); setDragging(false); acceptFile(e.dataTransfer.files[0]); }}
+                        >
+                            <button type="button" className="upload-drop-target"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    aria-label={preview ? 'change photo' : 'choose a photo'}>
+                                {preview
+                                    ? <img src={preview} alt="your photo" className="upload-preview" />
+                                    : <span className="upload-drop-icon"><ImageAddIcon /></span>}
+                            </button>
+                            <div className="upload-drop-actions">
+                                <span>{preview ? 'click to change, or' : 'drag, click, or'}</span>
+                                <button type="button" className="upload-link" onClick={takePhoto}>take a photo</button>
+                            </div>
+                            <input ref={fileInputRef} type="file" accept="image/*" hidden
+                                   onChange={(e) => { acceptFile(e.target.files[0]); e.target.value = ''; }} />
+                            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden
+                                   onChange={(e) => { acceptFile(e.target.files[0]); e.target.value = ''; }} />
                         </div>
+                        {errors.image && <p className="upload-error">{errors.image}</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="story">Story:</label>
-                            <textarea
-                                id="story"
-                                name="story"
-                                onChange={handleChange}
-                                required
-                            ></textarea>
-                        </div>
+                        <label className="upload-field">
+                            <span className="upload-label">name</span>
+                            <input name="name" value={form.name} onChange={handleChange}
+                                   placeholder="what is this photo?" aria-invalid={!!errors.name} />
+                        </label>
+                        {errors.name && <p className="upload-error">{errors.name}</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="date">Date:</label>
-                            <input
-                                type="date"
-                                id="date"
-                                name="date"
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
+                        <label className="upload-field">
+                            <span className="upload-label">your name</span>
+                            <input name="yourName" value={form.yourName} onChange={handleChange}
+                                   placeholder="who took or shared it" autoComplete="name"
+                                   aria-invalid={!!errors.yourName} />
+                        </label>
+                        {errors.yourName && <p className="upload-error">{errors.yourName}</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="country">Country:</label>
-                            <select
-                                id="country"
-                                name="country"
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">Select a country</option>
-                                {countries.map((country) => (
-                                    <option key={country} value={country}>
-                                        {country}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        <label className="upload-field">
+                            <span className="upload-label">caption</span>
+                            <textarea name="caption" value={form.caption} onChange={handleChange} rows={3}
+                                      placeholder="the story behind it" aria-invalid={!!errors.caption} />
+                        </label>
+                        {errors.caption && <p className="upload-error">{errors.caption}</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="email">Email:</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
+                        <label className="upload-field">
+                            <span className="upload-label">date</span>
+                            <input type="date" name="date" value={form.date} onChange={handleChange}
+                                   className={form.date ? '' : 'is-empty'} aria-invalid={!!errors.date} />
+                        </label>
+                        {errors.date && <p className="upload-error">{errors.date}</p>}
 
-                        <div className="form-group">
-                            <label htmlFor="equipment">Equipment:</label>
-                            <input
-                                type="text"
-                                id="equipment"
-                                name="equipment"
-                                onChange={handleChange}
-                            />
-                        </div>
+                        {isPhone ? (
+                            <div className="upload-actions">
+                                <button type="button" className="upload-button" onClick={goToLocation}>next</button>
+                            </div>
+                        ) : (
+                            <SubmitRow busy={busy} status={status} failure={failure} errors={errors} />
+                        )}
+                    </section>
+                )}
 
-                        <div className="form-group">
-                            <label htmlFor="image">Image:</label>
-                            <input
-                                type="file"
-                                id="image"
-                                accept="image/*"
-                            />
-                        </div>
-                    </form>
-                </div>
-            </div>
+                {showGlobe && (
+                    <section className="upload-location">
+                        {isPhone && <p className="upload-step">2 / 2 · where was it taken?</p>}
+                        <LocationPicker value={form.location} onChange={setLocation} />
+                        {errors.location && <p className="upload-error">{errors.location}</p>}
+                        {isPhone && (
+                            <div className="upload-actions upload-actions--split">
+                                <button type="button" className="upload-link" onClick={() => setStep(1)}>back</button>
+                                <SubmitRow busy={busy} status={status} failure={failure} errors={errors} />
+                            </div>
+                        )}
+                    </section>
+                )}
+            </form>
 
-            <div className="map-container">
-                <div className="map-instructions">
-                    Click anywhere on the map to place a marker for your photo's location
-                </div>
-                <div className="upload-map-container" ref={mapContainer}></div>
-                <div className="submit-button-container">
-                    <button
-                        type="button"
-                        className="submit-button"
-                        onClick={handleSubmit}
-                    >
-                        Submit
-                    </button>
-                </div>
-            </div>
-        </div>
+            {cameraOpen && <CameraCapture onCapture={onCaptured} onClose={closeCamera} />}
+        </main>
     );
 };
+
+const SubmitRow = ({ busy, status, failure, errors }) => (
+    <div className="upload-submit-row">
+        <button type="submit" className={'upload-button' + (busy ? ' is-busy' : '')} disabled={busy}>
+            {status === 'uploading' ? 'uploading…' : status === 'saving' ? 'saving…' : 'upload'}
+        </button>
+        <p className="upload-status" role="status">
+            {status === 'failed' && failure}
+            {status === 'idle' && Object.values(errors).some(Boolean) && 'a few things need fixing'}
+        </p>
+    </div>
+);
 
 export default UploadForm;
