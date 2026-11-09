@@ -58,6 +58,9 @@ module.exports = async (req, res) => {
                         email: marker.email,
                         equipment: marker.equipment,
                         image: marker.image,
+                        // upload time, read from the MongoDB id (ids carry their creation time),
+                        // so older entries have it too; used to browse "recent"
+                        created: marker._id.getTimestamp().toISOString(),
                     },
                 })),
             });

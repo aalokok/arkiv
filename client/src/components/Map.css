@@ -10,19 +10,23 @@
     overflow: hidden;
 }
 
-/* ── Opened dot: a soft floating card ─────────────────────────────────────────
-   Rounded frosted panel in the site's soft periwinkle → green glow. The photo leads;
+/* ── Opened dot: the photo card ───────────────────────────────────────────────
+   A flat peach panel, the same peach as the dots on the globe, so the card reads as the opened dot.
+   (Periwinkle was tried too, but the gray text and periwinkle arrows vanish on it.) The photo leads;
    then a title, one quiet line (by · date · place) and a short caption.
    Never scrolls: the photo follows its own shape up to the room the text needs. */
 
 .marker-card {
     --card-w: min(500px, calc(50vw - 64px));
-    --card-max-h: min(88vh, 880px);
+    /* hangs from just below the header and stops above the bottom-right controls
+       (the stacked column ends 110px up; 12px gap), so they stay usable while a card is open */
+    --card-top: 84px;
+    --card-max-h: min(880px, calc(100vh - var(--card-top) - 122px));
     --text-room: 200px;
     --pad: 10px;
 
     position: fixed;
-    top: 50%;
+    top: var(--card-top);
     left: calc(50% + 40px);
     z-index: 6;
     display: flex;
@@ -32,48 +36,67 @@
     padding: var(--pad);
     overflow: hidden;
     border-radius: var(--radius-card);
-    background:
-        radial-gradient(120% 80% at 0% 0%, rgba(var(--color-secondary-periwinkle-rgb), 0.35), transparent 60%),
-        radial-gradient(120% 80% at 100% 100%, rgba(var(--color-primary-rgb), 0.45), transparent 60%),
-        rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(18px) saturate(1.15);
-    -webkit-backdrop-filter: blur(18px) saturate(1.15);
-    box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.6) inset,
-        0 20px 60px rgba(var(--color-secondary-periwinkle-rgb), 0.35);
+    background: var(--color-secondary-peach);
     font-family: var(--font-sans);
     color: var(--color-text);
-    transform: translateY(-50%);
     animation: marker-card-in 0.4s ease both;
 }
 
 @keyframes marker-card-in {
-    from { opacity: 0; transform: translateY(calc(-50% + 12px)); }
+    from { opacity: 0; transform: translateY(12px); }
 }
 
-/* soft round close, floating over the photo */
+/* Card buttons (close ×, full-size +): same look as the header's + — a white square with a thin
+   periwinkle edge and a drawn sign. No motion on hover, just the header's peach tint. */
+.card-square {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--color-secondary-periwinkle);
+    border-radius: var(--radius-pill);
+    background: #fff;
+    color: var(--color-accent-text);
+    cursor: pointer;
+}
+
+.card-square:hover {
+    background: linear-gradient(rgba(var(--color-secondary-peach-rgb), 0.35), rgba(var(--color-secondary-peach-rgb), 0.35)), #fff;
+}
+
+.card-square:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+
+/* the sign is two drawn bars, so it sits exactly in the middle (like the header's +) */
+.card-square-icon {
+    position: relative;
+    width: 42%;
+    height: 42%;
+}
+
+.card-square-icon::before,
+.card-square-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    margin-top: -1px;
+    background: currentColor;
+}
+
+.card-square-icon::after { transform: rotate(90deg); }
+.card-square-icon.is-cross { transform: rotate(45deg); }   /* + turned 45° is the × */
+
+/* close: floats over the photo's top-right corner */
 .marker-card-close {
     position: absolute;
     top: calc(var(--pad) + 10px);
     right: calc(var(--pad) + 10px);
     z-index: 2;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    border: none;
-    border-radius: var(--radius-pill);
-    background: #fff;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    font: inherit;
-    font-size: 20px;
-    line-height: 1;
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background-color var(--motion-fast) ease, transform var(--motion-fast) ease;
 }
-
-.marker-card-close:hover { background: #fff; transform: scale(1.06); }
 
 /* the photo: rounded, follows its own proportions, capped so the text always fits */
 .marker-card-photo {
@@ -97,30 +120,38 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    transition: transform 0.6s ease;
 }
 
-.marker-card-photo:hover .marker-card-image { transform: scale(1.015); }
 .marker-card-photo:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
+/* the text sits in a white box under the photo (body + bottom row read as one box);
+   the peach shows around it the same width as around the photo */
 .marker-card-body {
     flex: none;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 14px 10px 6px;
+    margin-top: var(--pad);
+    padding: 14px 14px 6px;
+    background: #fff;
 }
 
+/* Card type matches the map controls and the information popup: ABC Areal at one size (15px).
+   All text is the arkiv logo gray (#aeaeae); hierarchy comes from weight only:
+     title   bold, lowercase
+     meta    regular (by · date · place)
+     caption regular
+     arrows  bold periwinkle (the only colour: they're the things you press) */
 .marker-card-title {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: clamp(20px, 2.6vh, 26px);
+    font-size: 15px;
     font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.01em;
-    color: var(--color-text);
+    line-height: 1.35;
+    text-transform: lowercase;   /* titles in the site's lowercase Areal, whatever case they were typed in */
+    color: var(--color-gray);
 }
 
 /* one quiet line: by name · date · place */
@@ -128,8 +159,9 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    font-size: 14px;
-    color: var(--color-accent-text);
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--color-gray);
 }
 
 /* 3 lines in the card; the full caption is in the expanded view */
@@ -138,43 +170,55 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    font-size: 14px;
-    line-height: 1.45;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--color-gray);
 }
 
-/* ‹ 2 of 6 › */
+/* bottom row: ‹ 2 of 6 › on the left, the full-size + on the right */
+.marker-card-foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px 10px 14px;
+    background: #fff;
+}
+
+.marker-card-expand { margin-left: auto; }
+
 .marker-card-nav {
     flex: none;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 14px;
-    padding: 6px 0 2px;
 }
 
+/* plain text arrows, no box (like the map controls) */
 .marker-card-step {
-    width: 34px;
-    height: 34px;
-    padding: 0 0 3px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     border: none;
-    border-radius: var(--radius-pill);
-    background: #fff;
+    background: none;
     font: inherit;
-    font-size: 22px;
+    font-size: 15px;
+    font-weight: 700;
     line-height: 1;
     color: var(--color-accent-text);
     cursor: pointer;
-    transition: background-color var(--motion-fast) ease, transform var(--motion-fast) ease;
 }
 
-.marker-card-step:hover { background: #fff; transform: scale(1.06); }
+.marker-card-step:hover { color: var(--color-text); }
 
 .marker-card-count {
-    min-width: 52px;
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
+    line-height: 1;
     color: var(--color-gray);
 }
+
+.marker-card-step:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* the connector line and the ring around the chosen dot */
 .marker-card-link {
@@ -278,42 +322,34 @@
     justify-content: center;
     gap: 10px;
     min-height: 0;
-    color: var(--color-text);
+    color: var(--color-gray);
 }
 
 .photo-viewer-info .marker-card-nav { justify-content: flex-start; margin-top: 6px; }
 
+/* full-size view: same type as the card */
 .photo-viewer-title {
-    font-size: clamp(24px, 3vw, 34px);
+    font-size: 15px;
     font-weight: 700;
-    line-height: 1.05;
-    letter-spacing: -0.01em;
+    line-height: 1.35;
+    text-transform: lowercase;
+    color: var(--color-gray);
 }
 
 .photo-viewer-caption {
     font-size: 15px;
     line-height: 1.55;
+    color: var(--color-gray);
 }
 
+/* same square as the card's close (see .card-square) */
 .photo-viewer-close {
     position: absolute;
     top: 14px;
     right: 18px;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border: none;
-    border-radius: var(--radius-pill);
-    background: #fff;
-    font: inherit;
-    font-size: 22px;
-    line-height: 1;
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background-color var(--motion-fast) ease, transform var(--motion-fast) ease;
+    width: 40px;
+    height: 40px;
 }
-
-.photo-viewer-close:hover { background: #fff; transform: scale(1.06); }
 
 @media (max-width: 700px) {
     .photo-viewer {
@@ -332,10 +368,7 @@
         overflow-y: auto; /* only the phone's full-screen text scrolls, for very long captions; the card never does */
     }
 
-    .photo-viewer-caption {
-        font-size: 14px;
-        line-height: 1.5;
-    }
+    .photo-viewer-caption { line-height: 1.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -376,7 +409,8 @@
     font-size: 15px;
     font-weight: 700;
     line-height: 1.2;
-    color: var(--color-text);
+    text-transform: lowercase;
+    color: var(--color-gray);         /* arkiv logo gray, same as the card titles */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -388,85 +422,113 @@
     transform: translate(calc(-100% - 14px), -50%);
 }
 
-/* "connect by: date | author" filter, bottom right above the Mapbox ⓘ */
-.connect-filter {
+/* Bottom right, above the Mapbox ⓘ: plain text controls with small square toggles, no boxes.
+     ■ recent   □ labels
+     connect by  date [■  ] author
+   A filled square means on; the label turns periwinkle with it. Date / author is one square switch. */
+.map-controls {
     position: fixed;
     right: 16px;
     bottom: 44px;
     z-index: 5;
     display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 8px 6px 16px;
-    border: 1px solid var(--color-divider);
-    border-radius: var(--radius-pill);
-    background: #fff;
-    font-family: var(--font-sans);
-    font-weight: 700;
-}
-
-.connect-filter-label {
-    margin-right: 6px;
-    font-size: 13px;
-    color: var(--color-gray);
-}
-
-.connect-filter-option {
-    padding: 4px 12px;
-    border: 1px solid transparent;
-    border-radius: var(--radius-pill);
-    background: none;
-    font: inherit;
-    font-size: 15px;
-    color: var(--color-gray);
-    cursor: pointer;
-    transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
-}
-
-.connect-filter-option:hover {
-    color: var(--color-accent-text);
-}
-
-.connect-filter-option.is-active {
-    color: var(--color-accent-text);
-    border-color: var(--color-accent-text); /* thin outline, like the header's + box */
-}
-
-.connect-filter-option:focus-visible {
-    outline: 2px solid var(--color-accent-text);
-    outline-offset: 2px;
-}
-
-/* phones: the "information" pill sits on the same row, so the filter drops its label */
-@media (max-width: 700px) {
-    .connect-filter { right: 12px; padding-left: 8px; }
-    .connect-filter-label { display: none; }
-}
-
-/* "show labels" toggle: same pill as the information button, stacked above the connect-by filter */
-.labels-toggle {
-    position: fixed;
-    right: 16px;
-    bottom: 92px;          /* connect-by filter (44px) + its 40px height + 8px gap */
-    z-index: 5;
-    height: 40px;
-    padding: 0 16px;
-    border: 1px solid var(--color-divider);
-    border-radius: var(--radius-pill);
-    background: #fff;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
     font-family: var(--font-sans);
     font-size: 15px;
     font-weight: 700;
     line-height: 1;
-    color: var(--color-gray);
-    cursor: pointer;
-    transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
-.labels-toggle:hover,
-.labels-toggle.is-on { color: var(--color-accent-text); border-color: var(--color-accent-text); }
-.labels-toggle:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+/* stacked: one control per row. The block sits at the right; inside it both rows take the width of
+   the wider one and start from the left, so the squares line up in a column and so do the words. */
+.map-toggles {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
 
+.map-toggles .map-toggle { justify-content: flex-start; }
+
+.connect-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.connect-filter-label { margin-right: 6px; }
+
+.connect-filter-label { color: var(--color-gray); font-weight: 400; }
+
+/* a toggle: square + word */
+.map-toggle,
+.connect-filter-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    white-space: nowrap;
+    color: var(--color-gray);
+    cursor: pointer;
+}
+
+.map-toggle::before {
+    content: '';
+    flex: none;
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid currentColor;
+    background: transparent;
+}
+
+.map-toggle:hover,
+.connect-filter-option:hover { color: var(--color-text); }
+
+.map-toggle.is-on,
+.connect-filter-option.is-active { color: var(--color-accent-text); }
+
+.map-toggle.is-on::before { background: currentColor; }
+
+/* the date / author switch: a square track with a square knob that slides to the chosen side */
+.connect-switch {
+    position: relative;
+    flex: none;
+    width: 30px;
+    height: 16px;
+    padding: 0;
+    border: 1.5px solid var(--color-accent-text);
+    background: #fff;
+    cursor: pointer;
+}
+
+.connect-switch-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 9px;
+    height: 9px;
+    background: var(--color-accent-text);
+    transition: transform var(--motion-fast) ease;
+}
+
+.connect-switch.is-author .connect-switch-knob { transform: translateX(14px); }
+
+.connect-switch:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .connect-switch-knob { transition: none; }
+}
+
+.map-toggle:focus-visible,
+.connect-filter-option:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 3px; }
+
+/* phones: the information pill shares this row, so drop the "connect by" word */
 @media (max-width: 700px) {
-    .labels-toggle { right: 12px; }
+    .map-controls { right: 12px; }
+    .connect-filter-label { display: none; }
 }
