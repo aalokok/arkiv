@@ -1,0 +1,130 @@
+/* Information popup on Explore: an "information" pill bottom left (above the Mapbox logo,
+   level with the connect-by filter), opening a soft rounded panel like the photo card. */
+.info {
+    position: fixed;
+    left: 16px;
+    bottom: 44px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    font-family: var(--font-sans);
+    color: var(--color-text);
+}
+
+/* same pill as the connect-by filter on the right */
+.info-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;          /* same height as the connect-by pill */
+    padding: 0 16px;
+    border: 1px solid var(--color-divider);
+    border-radius: var(--radius-pill);
+    background: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-accent-text);
+    cursor: pointer;
+    transition: border-color var(--motion-fast) ease;
+}
+
+.info-toggle:hover,
+.info-toggle.is-open { border-color: var(--color-accent-text); }
+.info-toggle:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 3px; }
+
+.info-toggle-mark {
+    width: 1ch;
+    font-size: 18px;
+    line-height: 0.8;
+    text-align: center;
+}
+
+/* plain white panel, rounded, with a soft neutral shadow */
+.info-popup {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(360px, calc(100vw - 32px));
+    max-height: calc(100dvh - 190px);
+    overflow: hidden;
+    padding: 22px 24px;
+    border-radius: var(--radius-card);
+    background: #fff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    transform-origin: bottom left;
+    animation: info-in 0.3s ease both;
+}
+
+@keyframes info-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+}
+
+/* Type: one face (ABC Areal Regular), one size, one line height, one colour:
+   the logo's own gray (#aeaeae). Only the links are periwinkle. */
+.info-popup,
+.info-popup * {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--color-gray);
+}
+
+/* the privacy note: a step smaller, in Areal italic */
+.info-popup .info-privacy {
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* the logo is the first word of the sentence (the svg is a mask; the brand gradient drifts through it) */
+.info-logo {
+    display: inline-block;
+    height: 1em;
+    aspect-ratio: 275 / 100;
+    vertical-align: -0.15em;
+    background:
+        linear-gradient(110deg,
+            var(--color-secondary-periwinkle) 0%,
+            var(--color-primary) 35%,
+            var(--color-secondary-peach) 65%,
+            var(--color-secondary-periwinkle) 100%) 0% 50% / 300% 100%,
+        var(--color-gray-light);
+    background-blend-mode: multiply;
+    -webkit-mask: var(--logo) center / contain no-repeat;
+    mask: var(--logo) center / contain no-repeat;
+    animation: info-logo-drift 14s ease-in-out infinite alternate;
+}
+
+@keyframes info-logo-drift {
+    from { background-position: 0% 50%; }
+    to { background-position: 100% 50%; }
+}
+
+.info-links {
+    display: inline-flex;
+    gap: 12px;
+    margin-left: 12px;
+}
+
+.info-link {
+    color: var(--color-accent-text);
+    text-decoration: none;
+    background: linear-gradient(currentColor, currentColor) left bottom / 0 1px no-repeat;
+    transition: background-size var(--motion-medium) ease;
+}
+
+.info-link:hover,
+.info-link:focus-visible { background-size: 100% 1px; outline: none; }
+
+@media (max-width: 700px) {
+    .info { left: 12px; }
+    .info-popup { width: calc(100vw - 24px); padding: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .info-popup,
+    .info-logo { animation: none; }
+}

@@ -61,6 +61,7 @@ header {
 .nav-plus:focus-visible {
     outline: 2px solid var(--nav-accent);
     outline-offset: 3px;
+    border-radius: var(--radius-pill);
 }
 
 .nav-menu {
@@ -100,16 +101,38 @@ header {
     width: 48px;
     height: 48px;
     border: 1px solid var(--color-secondary-periwinkle);
-    font-size: 36px;
-    font-weight: 700;
-    line-height: 1;
+    border-radius: var(--radius-pill);
+    background: #fff;
     text-decoration: none;
     color: var(--nav-accent);
     transition: background-color 0.2s ease;
 }
 
+/* the + is drawn with two bars so it sits exactly in the middle of the circle
+   (a typed "+" sits off-centre because of the font's baseline) */
+.nav-plus-icon {
+    position: relative;
+    width: 42%;
+    height: 42%;
+}
+
+.nav-plus-icon::before,
+.nav-plus-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    margin-top: -1.5px;
+    border-radius: 0;
+    background: currentColor;
+}
+
+.nav-plus-icon::after { transform: rotate(90deg); }
+
 .nav-plus:hover {
-    background-color: rgba(var(--color-secondary-peach-rgb), 0.35);
+    background: linear-gradient(rgba(var(--color-secondary-peach-rgb), 0.35), rgba(var(--color-secondary-peach-rgb), 0.35)), #fff;
 }
 
 /* Tablets */
@@ -119,7 +142,7 @@ header {
     .header-logo img { height: 32px; }
     .nav-current, .nav-link { font-size: 20px; }
     .nav-sep { height: 17px; margin: 0 8px; }
-    .nav-plus { width: 40px; height: 40px; font-size: 30px; }
+    .nav-plus { width: 40px; height: 40px; }
 }
 
 /* Phones */

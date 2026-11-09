@@ -22,6 +22,7 @@
     /* ── Map ───────────────────────────────────────────── */
     --color-marker: var(--color-secondary-peach); /* photo dots: stand out on green land and from periwinkle text */
     --color-marker-stroke: #ffffff;
+    --color-connection: var(--color-secondary-periwinkle); /* lines between related photos */
 
     /* ── Neutrals ──────────────────────────────────────── */
     --color-bg: #fafafa;                 /* page white */
@@ -34,11 +35,17 @@
 
     /* ── Typography ────────────────────────────────────── */
     --font-sans: 'ABC Areal', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'ABC Areal Mono', ui-monospace, 'SF Mono', Menlo, monospace; /* data readouts */
     --font-weight-regular: 400;
     --font-weight-medium: 500;
     --font-weight-bold: 700;
 
     /* ── Motion ────────────────────────────────────────── */
+    /* Shape: hard square corners everywhere (kept as tokens so the whole site can change in one place) */
+    --radius-card: 0;      /* floating panels */
+    --radius-box: 0;       /* photos, drop zones, video */
+    --radius-pill: 0;      /* buttons, tags, chips, tooltips */
+
     --motion-fast: 0.2s;
     --motion-medium: 0.25s;
 }

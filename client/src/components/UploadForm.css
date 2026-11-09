@@ -1,29 +1,45 @@
 /* Upload page — follows the site's look: lowercase ABC Areal, pale gray lines,
    periwinkle accents, blur-to-sharp icons, and the gray dot grid behind the globe. */
 
+/* The upload page fills exactly the screen under the header — no page scroll.
+   #root becomes a full-height column (header + page) only while this page is shown. */
+#root:has(.upload-page) {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+#root:has(.upload-page) > header { flex: none; }
+
 .upload-page {
     --upload-line: var(--color-divider);
     --upload-accent: var(--color-accent-text);
-    --upload-header: 90px; /* approx. header height, so the globe fills the rest */
 
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
     font-family: var(--font-sans);
     color: var(--color-text);
 }
 
 .upload-layout {
+    flex: 1;
+    min-height: 0;
     display: grid;
     grid-template-columns: minmax(320px, 460px) 1fr;
+    grid-template-rows: minmax(0, 1fr);
     gap: clamp(24px, 4vw, 64px);
-    min-height: calc(100vh - var(--upload-header));
-    padding: 8px clamp(16px, 4vw, 56px) 24px;
+    padding: 4px clamp(16px, 4vw, 56px) clamp(12px, 2.5vh, 24px);
 }
 
 /* ── Left: photo & details ─────────────────────────── */
 .upload-details {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding-top: 8px;
+    gap: clamp(10px, 2vh, 20px);
+    min-height: 0;
 }
 
 .upload-step {
@@ -39,11 +55,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    min-height: 230px;
-    padding: 20px;
+    gap: 10px;
+    flex: 1 1 0;          /* the photo box takes whatever height is left, so everything fits */
+    min-height: 90px;
+    padding: 12px;
+    overflow: hidden;
     border: 1px dashed var(--upload-line);
-    border-radius: 4px;
+    border-radius: var(--radius-box);
     transition: border-color var(--motion-medium) ease, background-color var(--motion-medium) ease;
 }
 
@@ -55,6 +73,12 @@
 }
 
 .upload-drop-target {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
     background: none;
     border: none;
     padding: 0;
@@ -64,7 +88,9 @@
 
 .upload-drop-icon {
     display: block;
-    width: 110px;
+    width: min(110px, 100%);
+    height: 100%;
+    max-height: 110px;
     filter: blur(3px);
     opacity: 0.7;
     transition: filter var(--motion-medium) ease, opacity var(--motion-medium) ease, color var(--motion-medium) ease;
@@ -80,17 +106,18 @@
 
 .upload-drop-target:focus-visible { outline: none; }
 
-.upload-drop-icon svg { display: block; width: 100%; height: auto; }
+.upload-drop-icon svg { display: block; width: 100%; height: 100%; }
 
 .upload-preview {
     display: block;
     max-width: 100%;
-    max-height: 300px;
-    border-radius: 3px;
+    max-height: 100%;     /* scales down with the photo box */
+    border-radius: 0;
     object-fit: contain;
 }
 
 .upload-drop-actions {
+    flex: none;
     display: flex;
     gap: 6px;
     align-items: baseline;
@@ -103,7 +130,8 @@
 .upload-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
+    flex: none;
 }
 
 .upload-label {
@@ -115,13 +143,13 @@
 .upload-field input,
 .upload-field textarea {
     width: 100%;
-    padding: 6px 0 10px;
+    padding: 4px 0 8px;
     border: none;
     border-bottom: 1px solid var(--upload-line);
     border-radius: 0;
     background: transparent;
     font: inherit;
-    font-size: 24px;
+    font-size: clamp(18px, 2.6vh, 22px);
     font-weight: 700;
     line-height: 1.25;
     color: var(--color-text);
@@ -150,7 +178,8 @@
 }
 
 .upload-error {
-    margin-top: -14px;
+    flex: none;
+    margin-top: calc(-1 * clamp(8px, 1.6vh, 16px));
     font-size: 14px;
     font-weight: 700;
     color: #c2410c;
@@ -158,9 +187,10 @@
 
 /* ── Buttons (same family as the header's + box) ───── */
 .upload-button {
-    padding: 12px 22px;
+    padding: 12px 26px;
     border: 1px solid var(--upload-accent);
-    background: transparent;
+    border-radius: var(--radius-pill);
+    background: #fff;
     color: var(--upload-accent);
     font: inherit;
     font-size: 22px;
@@ -171,7 +201,7 @@
     transition: background-color var(--motion-fast) ease;
 }
 
-.upload-button:hover { background: rgba(var(--color-secondary-peach-rgb), 0.35); }
+.upload-button:hover { background: linear-gradient(rgba(var(--color-secondary-peach-rgb), 0.35), rgba(var(--color-secondary-peach-rgb), 0.35)), #fff; }
 .upload-button:focus-visible { outline: 2px solid var(--upload-accent); outline-offset: 3px; }
 .upload-button:disabled { cursor: progress; }
 
@@ -205,6 +235,7 @@
 .upload-actions--split { justify-content: space-between; }
 
 .upload-submit-row {
+    flex: none;
     display: flex;
     flex-direction: row-reverse; /* button on the right, status message to its left */
     align-items: center;
@@ -221,18 +252,16 @@
 
 /* ── Right: globe with the dot grid behind it ──────── */
 .upload-location {
-    position: sticky;
-    top: 0;
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    height: calc(100vh - var(--upload-header) - 32px);
+    gap: 12px;
+    min-height: 0;
 }
 
 .globe-picker {
     position: relative;
     flex: 1;
-    min-height: 320px;
+    min-height: 0;
 }
 
 .globe-picker-dots {
@@ -324,7 +353,7 @@
 .camera-video {
     width: 100%;
     max-height: 70vh;
-    border-radius: 4px;
+    border-radius: var(--radius-box);
     background: #000;
     object-fit: cover;
 }
@@ -338,23 +367,12 @@
 
 /* ── Phones: two steps, one column ─────────────────── */
 @media (max-width: 760px) {
-    .upload-page { --upload-header: 70px; }
-
     .upload-layout {
         grid-template-columns: 1fr;
-        padding: 4px 16px 24px;
+        padding: 0 16px 14px;
     }
 
-    .upload-field input,
-    .upload-field textarea { font-size: 20px; }
-
-    .upload-drop { min-height: 190px; }
-
-    .upload-location {
-        position: static;
-        height: calc(100vh - var(--upload-header) - 40px);
-        height: calc(100dvh - var(--upload-header) - 40px);
-    }
+    .upload-drop { min-height: 80px; }
 
     .globe-picker-bar {
         flex-direction: column;
