@@ -71,8 +71,19 @@ export function recolorMapImage(url) {
     });
 }
 
+/**
+ * Shows or hides the base map's text: country, state, city, ocean and road names.
+ * Only the style's own symbol layers are touched (the app's markers and lines are not symbols).
+ */
+export function setMapLabels(map, visible) {
+    map.getStyle().layers
+        .filter((l) => l.type === 'symbol')
+        .forEach((l) => map.setLayoutProperty(l.id, 'visibility', visible ? 'visible' : 'none'));
+}
+
 export function applyBrandToMap(map) {
     const primary = getBrandPrimary();
+    const water = getToken('--color-bg', '#fafafa'); // same as the page background
 
     LAND_LAYERS.forEach(([layer, property]) => {
         if (map.getLayer(layer)) map.setPaintProperty(layer, property, primary);
@@ -82,4 +93,14 @@ export function applyBrandToMap(map) {
     if (map.getLayer('landuse')) {
         map.setPaintProperty('landuse', 'fill-color', ['match', ['get', 'class'], 'glacier', GLACIER_GRAY, primary]);
     }
+
+    // water: the page background colour everywhere (oceans, lakes, rivers, and the depth / shadow layers some styles add)
+    map.getStyle().layers
+        .filter((l) => /water/.test(l.id) && (l.type === 'fill' || l.type === 'line'))
+        .forEach((l) => {
+            map.setPaintProperty(l.id, `${l.type}-color`, water);
+            if (l.type === 'fill' && map.getPaintProperty(l.id, 'fill-pattern')) {
+                map.setPaintProperty(l.id, 'fill-pattern', null);
+            }
+        });
 }

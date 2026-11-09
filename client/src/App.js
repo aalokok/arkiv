@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Map from './components/Map';
 import UploadForm from './components/UploadForm';
 import Landing from './components/Landing';
-import About from './components/About';
 import './App.css';
 
 // The landing page is full-screen and brings its own logo, so it has no header.
@@ -44,7 +43,8 @@ function App() {
             <HeaderOutsideLanding />
             <Routes>
                 <Route path="/" element={<Landing />} />
-                <Route path="/about" element={<About />} />
+                {/* information is now a popup on Explore; old /about links open it there */}
+                <Route path="/about" element={<Navigate to="/explore?info" replace />} />
                 <Route
                     path="/explore"
                     element={

@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import './Map.css';
-import { applyBrandToMap, getToken } from '../styles/mapTheme';
+import { applyBrandToMap, getToken, setMapLabels } from '../styles/mapTheme';
+import { useLocation } from 'react-router-dom';
+import InfoPanel from './InfoPanel';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -13,10 +15,69 @@ const formatDate = (value) => {
         : d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+const line = (a, b) => ({
+    type: 'Feature',
+    geometry: { type: 'LineString', coordinates: [a.geometry.coordinates, b.geometry.coordinates] },
+    properties: {},
+});
+
+// Lines between related photos.
+//  - 'date':   every pair of photos taken on the same day
+//  - 'author': each person's photos ("your name"), joined in date order like a trail
+export function buildConnections(markers, mode) {
+    const empty = { type: 'FeatureCollection', features: [] };
+    if (!markers?.features) return empty;
+
+    const groups = {};
+    markers.features.forEach((m) => {
+        const raw = mode === 'author' ? m.properties.photographer : m.properties.date;
+        const key = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+        if (!key) return; // no author / no date: nothing to connect
+        (groups[key] = groups[key] || []).push(m);
+    });
+
+    const features = [];
+    Object.values(groups).forEach((group) => {
+        if (group.length < 2) return;
+        if (mode === 'author') {
+            const trail = [...group].sort((a, b) => String(a.properties.date).localeCompare(String(b.properties.date)));
+            for (let i = 0; i < trail.length - 1; i++) features.push(line(trail[i], trail[i + 1]));
+        } else {
+            for (let i = 0; i < group.length - 1; i++) {
+                for (let j = i + 1; j < group.length; j++) features.push(line(group[i], group[j]));
+            }
+        }
+    });
+    return { type: 'FeatureCollection', features };
+}
+
+// Photos linked to `props` under the current "connect by" mode, in date order (itself included).
+const keyFor = (props, mode) => {
+    const raw = mode === 'author' ? props.photographer : props.date;
+    return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+};
+
+export function relatedPhotos(geojson, props, mode) {
+    const key = keyFor(props, mode);
+    if (!key || !geojson?.features) return [];
+    return geojson.features
+        .filter((f) => keyFor(f.properties, mode) === key)
+        .sort((a, b) => String(a.properties.date).localeCompare(String(b.properties.date)));
+}
+
+const isPhoneWidth = () => window.matchMedia('(max-width: 700px)').matches;
+
+
 const Map = ({ geojsonData, isLoading }) => {
     const mapContainer = useRef(null);
     const mapInstance = useRef(null);
-    const [popupData, setPopupData] = useState(null);
+    const [selected, setSelected] = useState(null); // { props, coords } of the opened dot
+    const infoOnArrival = new URLSearchParams(useLocation().search).has('info');
+    const popupData = selected?.props || null;
+    const [dotPoint, setDotPoint] = useState(null); // screen position of the opened dot
+    const [cardAnchor, setCardAnchor] = useState(null); // where the connector meets the card
+    const cardRef = useRef(null);
+    const openMarkerRef = useRef(null);
     const [mapInitialized, setMapInitialized] = useState(false);
     const popupOpenRef = useRef(false);
     const hoveringMarkerRef = useRef(false); // pointer over a dot: hold the spin so it can be clicked
@@ -24,49 +85,12 @@ const Map = ({ geojsonData, isLoading }) => {
     const spinRef = useRef(null);
     const styleReadyMapRef = useRef(null); // the map instance whose style has finished loading
 
-    const createDateConnections = (markers) => {
-        if (!markers || !markers.features) return { type: 'FeatureCollection', features: [] };
-
-        // Group markers by date
-        const markersByDate = {};
-        markers.features.forEach(marker => {
-            const date = marker.properties.date;
-            if (!markersByDate[date]) {
-                markersByDate[date] = [];
-            }
-            markersByDate[date].push(marker);
-        });
-
-        // Create lines between markers with the same date
-        const connections = {
-            type: 'FeatureCollection',
-            features: []
-        };
-
-        Object.values(markersByDate).forEach(dateMarkers => {
-            if (dateMarkers.length >= 2) {
-                for (let i = 0; i < dateMarkers.length - 1; i++) {
-                    for (let j = i + 1; j < dateMarkers.length; j++) {
-                        connections.features.push({
-                            type: 'Feature',
-                            geometry: {
-                                type: 'LineString',
-                                coordinates: [
-                                    dateMarkers[i].geometry.coordinates,
-                                    dateMarkers[j].geometry.coordinates
-                                ]
-                            },
-                            properties: {
-                                date: dateMarkers[i].properties.date
-                            }
-                        });
-                    }
-                }
-            }
-        });
-
-        return connections;
-    };
+    const [connectBy, setConnectBy] = useState('date'); // 'date' | 'author'
+    const connectByRef = useRef(connectBy);
+    connectByRef.current = connectBy;
+    const [showLabels, setShowLabels] = useState(false); // country / city names on the globe, off by default
+    const showLabelsRef = useRef(showLabels);
+    showLabelsRef.current = showLabels;
 
     // Initialize the map immediately; markers are added once data arrives
     useEffect(() => {
@@ -85,6 +109,7 @@ const Map = ({ geojsonData, isLoading }) => {
             const createdForStyle = mapInstance.current;
             createdForStyle.on('style.load', () => {
                 applyBrandToMap(createdForStyle);
+                setMapLabels(createdForStyle, showLabelsRef.current);
                 styleReadyMapRef.current = createdForStyle;
                 setMapInitialized(true);
             });
@@ -139,7 +164,105 @@ const Map = ({ geojsonData, isLoading }) => {
         };
     }, []);
 
-    // Pause the spin while a marker's side panel is open; resume when it closes
+    // Open a dot: glide the globe so the dot sits beside the card, then show the card
+    const openMarker = useCallback((props, coords) => {
+        const map = mapInstance.current;
+        setSelected({ props, coords });
+        setHoverName(null);
+        if (!map) return;
+        const phone = isPhoneWidth();
+        map.stop();
+        map.flyTo({
+            center: coords,
+            zoom: Math.max(map.getZoom(), 2.2),
+            // desktop: dot left of centre, card on the right; phone: dot in the upper part, sheet below
+            offset: phone ? [0, -window.innerHeight * 0.22] : [-window.innerWidth * 0.18, 0],
+            duration: 900,
+            essential: true,
+        });
+    }, []);
+    openMarkerRef.current = openMarker;
+
+    // Keep the connector's dot end on the dot while the globe moves
+    useEffect(() => {
+        const map = mapInstance.current;
+        if (!map || !selected) { setDotPoint(null); return undefined; }
+        const update = () => {
+            const p = map.project(selected.coords);
+            setDotPoint({ x: p.x, y: p.y });
+        };
+        update();
+        map.on('move', update);
+        return () => map.off('move', update);
+    }, [selected]);
+
+    // Where the connector meets the card: its left edge (desktop) or top edge (phone sheet)
+    useEffect(() => {
+        if (!selected) { setCardAnchor(null); return undefined; }
+        const measure = () => {
+            const r = cardRef.current?.getBoundingClientRect();
+            if (!r) return;
+            setCardAnchor(isPhoneWidth()
+                ? { x: r.left + r.width / 2, y: r.top }
+                : { x: r.left, y: r.top + Math.min(r.height / 2, 160) });
+        };
+        measure();
+        const settle = setTimeout(measure, 400); // again once the card's slide-in animation has finished
+        const ro = new ResizeObserver(measure);
+        if (cardRef.current) ro.observe(cardRef.current);
+        window.addEventListener('resize', measure);
+        return () => { clearTimeout(settle); ro.disconnect(); window.removeEventListener('resize', measure); };
+    }, [selected]);
+
+    // The card's photo frame takes the photo's own proportions (width / height), set once it loads
+    const [photoRatio, setPhotoRatio] = useState(4 / 3);
+    useEffect(() => { setPhotoRatio(4 / 3); }, [selected?.props?.image]);
+
+    // Full-screen photo viewer (opened from the card's photo)
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const swipeStartX = useRef(null);
+    useEffect(() => { if (!selected) setViewerOpen(false); }, [selected]);
+
+    // Photos linked to the open one under the current filter, for prev / next
+    const related = useMemo(
+        () => (selected ? relatedPhotos(geojsonData, selected.props, connectBy) : []),
+        [geojsonData, selected, connectBy]
+    );
+    // Mapbox returns clicked positions slightly rounded, so match on the image URL (unique per
+    // upload), falling back to name + date + approximate position.
+    const relatedIndex = related.findIndex((f) => {
+        if (!selected) return false;
+        const a = f.properties;
+        const b = selected.props;
+        if (a.image && b.image) return a.image === b.image;
+        const [x, y] = f.geometry.coordinates;
+        return a.owner === b.owner && a.date === b.date
+            && Math.abs(x - selected.coords[0]) < 1e-3 && Math.abs(y - selected.coords[1]) < 1e-3;
+    });
+    const canStep = related.length > 1 && relatedIndex >= 0;
+    const step = (dir) => {
+        if (!canStep) return;
+        const next = related[(relatedIndex + dir + related.length) % related.length];
+        openMarker(next.properties, next.geometry.coordinates);
+    };
+    const stepRef = useRef(step);
+    stepRef.current = step;
+
+    // Escape closes the viewer first, then the card; arrow keys step while the viewer is open
+    useEffect(() => {
+        if (!selected) return undefined;
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                if (viewerOpen) setViewerOpen(false);
+                else setSelected(null);
+            } else if (viewerOpen && e.key === 'ArrowRight') stepRef.current(1);
+            else if (viewerOpen && e.key === 'ArrowLeft') stepRef.current(-1);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [selected, viewerOpen]);
+
+    // Pause the spin while a marker's card is open; resume when it closes
     useEffect(() => {
         popupOpenRef.current = Boolean(popupData);
         if (!popupData) spinRef.current?.();
@@ -154,45 +277,21 @@ const Map = ({ geojsonData, isLoading }) => {
 
         // Add sources and layers
         if (!mapInstance.current.getSource('markers')) {
-            // Add glow effect source and layer
-            mapInstance.current.addSource('connections-glow', {
-                type: 'geojson',
-                data: createDateConnections(geojsonData)
-            });
-
-            mapInstance.current.addLayer({
-                id: 'connection-glow',
-                type: 'line',
-                source: 'connections-glow',
-                paint: {
-                    'line-color': '#ffffff',
-                    'line-width': 4,
-                    'line-opacity': 0.2,
-                    'line-blur': 3
-                }
-            });
-
-            // Add connections source and layer
+            // Connector lines: thin, light, brand periwinkle
             mapInstance.current.addSource('connections', {
                 type: 'geojson',
-                data: createDateConnections(geojsonData)
+                data: buildConnections(geojsonData, connectByRef.current)
             });
 
             mapInstance.current.addLayer({
                 id: 'connection-layer',
                 type: 'line',
                 source: 'connections',
+                layout: { 'line-cap': 'round' },
                 paint: {
-                    'line-color': ['interpolate', ['linear'], ['zoom'],
-                        0, '#000000',
-                        5, '#000000',
-                    ],
-                    'line-width': ['interpolate', ['linear'], ['zoom'],
-                        0, 1,
-                        5, 2,
-                        10, 3
-                    ],
-                    'line-opacity': 0.8
+                    'line-color': getToken('--color-connection', '#B3C0FF'),
+                    'line-width': ['interpolate', ['linear'], ['zoom'], 0, 0.8, 5, 1.2, 10, 1.5],
+                    'line-opacity': 0.7
                 }
             });
 
@@ -216,8 +315,14 @@ const Map = ({ geojsonData, isLoading }) => {
 
             // Add click handlers
             mapInstance.current.on('click', 'marker-layer', (e) => {
-                const properties = e.features[0].properties;
-                setPopupData(properties);
+                const f = e.features[0];
+                openMarkerRef.current?.(f.properties, f.geometry.coordinates);
+            });
+
+            // clicking empty globe closes the card
+            mapInstance.current.on('click', (e) => {
+                const hit = mapInstance.current.queryRenderedFeatures(e.point, { layers: ['marker-layer'] });
+                if (!hit.length) setSelected(null);
             });
 
             mapInstance.current.on('mouseenter', 'marker-layer', () => {
@@ -251,21 +356,57 @@ const Map = ({ geojsonData, isLoading }) => {
             // Update existing sources with new data
             const markerSource = mapInstance.current.getSource('markers');
             const connectionSource = mapInstance.current.getSource('connections');
-            const glowSource = mapInstance.current.getSource('connections-glow');
 
-            if (markerSource && connectionSource && glowSource) {
+            if (markerSource && connectionSource) {
                 markerSource.setData(geojsonData);
-                const connections = createDateConnections(geojsonData);
-                connectionSource.setData(connections);
-                glowSource.setData(connections);
+                connectionSource.setData(buildConnections(geojsonData, connectByRef.current));
             }
         }
     }, [geojsonData, mapInitialized, isLoading]);
+
+    // Redraw the connector lines when the "connect by" filter changes
+    useEffect(() => {
+        const source = mapInstance.current?.getSource?.('connections');
+        if (source && geojsonData) source.setData(buildConnections(geojsonData, connectBy));
+    }, [connectBy, geojsonData]);
+
+    // Show / hide the place names when the toggle changes
+    useEffect(() => {
+        if (styleReadyMapRef.current) setMapLabels(styleReadyMapRef.current, showLabels);
+    }, [showLabels]);
 
     return (
         <div>
             {/* gray dot grid behind the globe */}
             <div className="explore-dots" aria-hidden="true" />
+            {/* information: round "i" bottom left; /explore?info opens it on arrival */}
+            <InfoPanel startOpen={infoOnArrival} closeSignal={selected} />
+            {/* place names toggle, bottom right above the connect-by filter */}
+            <button
+                type="button"
+                className={'labels-toggle' + (showLabels ? ' is-on' : '')}
+                aria-pressed={showLabels}
+                onClick={() => setShowLabels((v) => !v)}
+            >
+                {showLabels ? 'hide labels' : 'show labels'}
+            </button>
+            {/* connect-by filter, bottom right (above the Mapbox ⓘ) */}
+            <div className="connect-filter" role="radiogroup" aria-label="Connect photos by">
+                <span className="connect-filter-label">connect by</span>
+                {['date', 'author'].map((mode) => (
+                    <button
+                        key={mode}
+                        type="button"
+                        role="radio"
+                        aria-checked={connectBy === mode}
+                        className={'connect-filter-option' + (connectBy === mode ? ' is-active' : '')}
+                        onClick={() => setConnectBy(mode)}
+                    >
+                        {mode}
+                    </button>
+                ))}
+            </div>
+
             {hoverName && !popupData && (
                 // React escapes the text, so user-submitted names can't inject markup
                 <div
@@ -293,47 +434,106 @@ const Map = ({ geojsonData, isLoading }) => {
                 )}
             </div>
 
-            {popupData && (
-                <div className="popup-side-panel">
-                    <button className="close-button" onClick={() => setPopupData(null)}>
-                        &times;
-                    </button>
-                    {/* same fields as the upload form: photo, name, your name, caption, date (+ country from the pin) */}
-                    <div className="popup-details">
+            {selected && (
+                <>
+                    {/* periwinkle line from the dot to the card, plus a ring on the chosen dot */}
+                    {dotPoint && cardAnchor && (
+                        <svg className="marker-card-link" aria-hidden="true">
+                            <line x1={dotPoint.x} y1={dotPoint.y} x2={cardAnchor.x} y2={cardAnchor.y} />
+                        </svg>
+                    )}
+                    {dotPoint && (
+                        <span className="marker-card-ring" style={{ left: dotPoint.x, top: dotPoint.y }} aria-hidden="true" />
+                    )}
+
+                    <article className="marker-card" ref={cardRef} aria-label={popupData.owner || 'photo'}>
+                        <button type="button" className="marker-card-close" onClick={() => setSelected(null)} aria-label="close">
+                            &times;
+                        </button>
+
                         {popupData.image && (
-                            <img
-                                src={popupData.image}
-                                alt={popupData.owner || 'uploaded photo'}
-                                className="popup-image"
-                            />
+                            <button
+                                type="button"
+                                className="marker-card-photo"
+                                style={{ '--photo-ratio': photoRatio }}
+                                onClick={() => setViewerOpen(true)}
+                                aria-label="view photo and full caption"
+                            >
+                                <img
+                                    src={popupData.image}
+                                    alt={popupData.owner || 'uploaded photo'}
+                                    className="marker-card-image"
+                                    onLoad={(e) => {
+                                        const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                                        if (w && h) setPhotoRatio(w / h);
+                                    }}
+                                />
+                            </button>
                         )}
-                        <h3>{popupData.owner}</h3>
-                        {popupData.photographer && (
-                            <div className="popup-field">
-                                <span className="popup-label">by</span>
-                                <p>{popupData.photographer}</p>
+
+                        <div className="marker-card-body">
+                            <h3 className="marker-card-title">{popupData.owner}</h3>
+                            <p className="marker-card-meta">
+                                {[popupData.photographer && 'by ' + popupData.photographer, formatDate(popupData.date), popupData.country]
+                                    .filter(Boolean).join(' · ')}
+                            </p>
+                            {popupData.story && <p className="marker-card-caption">{popupData.story}</p>}
+                        </div>
+
+                        {canStep && (
+                            <nav className="marker-card-nav" aria-label={'photos linked by ' + connectBy}>
+                                <button type="button" className="marker-card-step" onClick={() => step(-1)} aria-label="previous linked photo">‹</button>
+                                <span className="marker-card-count">{relatedIndex + 1} of {related.length}</span>
+                                <button type="button" className="marker-card-step" onClick={() => step(1)} aria-label="next linked photo">›</button>
+                            </nav>
+                        )}
+                    </article>
+
+                    {/* full-screen view: big photo plus the full caption */}
+                    {viewerOpen && popupData.image && (
+                        <div
+                            className="photo-viewer"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={popupData.owner || 'photo'}
+                            onClick={(e) => e.target === e.currentTarget && setViewerOpen(false)}
+                            onTouchStart={(e) => { swipeStartX.current = e.touches[0].clientX; }}
+                            onTouchEnd={(e) => {
+                                if (swipeStartX.current == null) return;
+                                const dx = e.changedTouches[0].clientX - swipeStartX.current;
+                                swipeStartX.current = null;
+                                if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+                            }}
+                        >
+                            <button type="button" className="photo-viewer-close" onClick={() => setViewerOpen(false)} aria-label="close">
+                                &times;
+                            </button>
+                            <div className="photo-viewer-stage" onClick={(e) => e.target === e.currentTarget && setViewerOpen(false)}>
+                                <img
+                                    key={popupData.image}
+                                    src={popupData.image}
+                                    alt={popupData.owner || 'uploaded photo'}
+                                    className="photo-viewer-image"
+                                />
                             </div>
-                        )}
-                        {popupData.story && (
-                            <div className="popup-field">
-                                <span className="popup-label">caption</span>
-                                <p>{popupData.story}</p>
-                            </div>
-                        )}
-                        {popupData.date && (
-                            <div className="popup-field">
-                                <span className="popup-label">date</span>
-                                <p>{formatDate(popupData.date)}</p>
-                            </div>
-                        )}
-                        {popupData.country && (
-                            <div className="popup-field">
-                                <span className="popup-label">location</span>
-                                <p>{popupData.country}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                            <aside className="photo-viewer-info">
+                                <h3 className="photo-viewer-title">{popupData.owner}</h3>
+                                <p className="marker-card-meta">
+                                    {[popupData.photographer && 'by ' + popupData.photographer, formatDate(popupData.date), popupData.country]
+                                        .filter(Boolean).join(' · ')}
+                                </p>
+                                {popupData.story && <p className="photo-viewer-caption">{popupData.story}</p>}
+                                {canStep && (
+                                    <nav className="marker-card-nav" aria-label={'photos linked by ' + connectBy}>
+                                        <button type="button" className="marker-card-step" onClick={() => step(-1)} aria-label="previous photo">‹</button>
+                                        <span className="marker-card-count">{relatedIndex + 1} of {related.length}</span>
+                                        <button type="button" className="marker-card-step" onClick={() => step(1)} aria-label="next photo">›</button>
+                                    </nav>
+                                )}
+                            </aside>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

@@ -69,6 +69,12 @@ module.exports = async (req, res) => {
 
     if (req.method === 'POST') {
         try {
+            // An exact repeat of an existing entry (same title, author, caption, date and pin) is a
+            // double submit, not a new photo: answer as if saved, but don't store it again.
+            const { owner, photographer, story, date, location } = req.body || {};
+            const repeat = await Marker.exists({ owner, photographer, story, date, location });
+            if (repeat) return res.status(200).json({ message: 'Already saved' });
+
             await new Marker(req.body).save();
             return res.status(201).json({ message: 'Marker saved successfully!' });
         } catch (error) {

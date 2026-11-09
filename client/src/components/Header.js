@@ -5,7 +5,6 @@ import logo from './arkiv.svg';
 
 const PAGES = [
     { to: '/explore', label: 'explore' },
-    { to: '/about', label: 'information' },
     { to: '/upload', label: 'upload' },
 ];
 
@@ -61,7 +60,7 @@ const Header = () => {
                 )}
             </nav>
 
-            <Link to="/upload" className="nav-plus" aria-label="upload">+</Link>
+            <Link to="/upload" className="nav-plus" aria-label="upload"><span className="nav-plus-icon" aria-hidden="true" /></Link>
         </header>
     );
 };

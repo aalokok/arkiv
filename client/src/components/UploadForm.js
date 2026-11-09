@@ -56,6 +56,9 @@ const UploadForm = ({ onMarkerAdded }) => {
     const [cameraOpen, setCameraOpen] = useState(false);
     const [errors, setErrors] = useState({});
     const [status, setStatus] = useState('idle'); // idle | uploading | saving | done | failed
+    // Set synchronously on the first submit, so a fast double click or double Enter can't send twice
+    // (the status state above only updates on the next render).
+    const submitting = useRef(false);
     const [failure, setFailure] = useState('');
 
     const fileInputRef = useRef(null);
@@ -105,8 +108,8 @@ const UploadForm = ({ onMarkerAdded }) => {
     const detailErrors = () => {
         const next = {};
         if (!imageFile) next.image = 'add a photo';
-        if (!form.name.trim()) next.name = 'add a name';
-        if (!form.yourName.trim()) next.yourName = 'add your name';
+        if (!form.name.trim()) next.name = 'add a title';
+        if (!form.yourName.trim()) next.yourName = 'add the author';
         if (!form.caption.trim()) next.caption = 'add a caption';
         if (!form.date) next.date = 'pick a date';
         return next;
@@ -120,7 +123,7 @@ const UploadForm = ({ onMarkerAdded }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (status === 'uploading' || status === 'saving') return; // no double submits
+        if (submitting.current) return; // no double submits
 
         const next = detailErrors();
         if (!form.location) next.location = 'drop a pin on the globe';
@@ -131,6 +134,7 @@ const UploadForm = ({ onMarkerAdded }) => {
         }
 
         setFailure('');
+        submitting.current = true;
         try {
             setStatus('uploading');
             const [image, country] = await Promise.all([
@@ -158,6 +162,7 @@ const UploadForm = ({ onMarkerAdded }) => {
             setStatus('done');
             onMarkerAdded?.();
         } catch (err) {
+            submitting.current = false; // let them try again
             setStatus('failed');
             setFailure(err.message === 'save'
                 ? 'the photo uploaded but saving failed — try again'
@@ -166,6 +171,7 @@ const UploadForm = ({ onMarkerAdded }) => {
     };
 
     const startOver = () => {
+        submitting.current = false;
         setForm(EMPTY_FORM);
         setImageFile(null);
         setErrors({});
@@ -224,26 +230,26 @@ const UploadForm = ({ onMarkerAdded }) => {
                         {errors.image && <p className="upload-error">{errors.image}</p>}
 
                         <label className="upload-field">
-                            <span className="upload-label">name</span>
+                            <span className="upload-label">title</span>
                             <input name="name" value={form.name} onChange={handleChange}
                                    placeholder="what is this photo?" aria-invalid={!!errors.name} />
                         </label>
                         {errors.name && <p className="upload-error">{errors.name}</p>}
 
                         <label className="upload-field">
-                            <span className="upload-label">your name</span>
+                            <span className="upload-label">caption</span>
+                            <textarea name="caption" value={form.caption} onChange={handleChange} rows={2}
+                                      placeholder="the story behind it" aria-invalid={!!errors.caption} />
+                        </label>
+                        {errors.caption && <p className="upload-error">{errors.caption}</p>}
+
+                        <label className="upload-field">
+                            <span className="upload-label">author</span>
                             <input name="yourName" value={form.yourName} onChange={handleChange}
                                    placeholder="who took or shared it" autoComplete="name"
                                    aria-invalid={!!errors.yourName} />
                         </label>
                         {errors.yourName && <p className="upload-error">{errors.yourName}</p>}
-
-                        <label className="upload-field">
-                            <span className="upload-label">caption</span>
-                            <textarea name="caption" value={form.caption} onChange={handleChange} rows={3}
-                                      placeholder="the story behind it" aria-invalid={!!errors.caption} />
-                        </label>
-                        {errors.caption && <p className="upload-error">{errors.caption}</p>}
 
                         <label className="upload-field">
                             <span className="upload-label">date</span>
