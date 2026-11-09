@@ -21,7 +21,6 @@
 
     /* ── Map ───────────────────────────────────────────── */
     --color-marker: var(--color-secondary-peach); /* photo dots: stand out on green land and from periwinkle text */
-    --color-marker-stroke: #ffffff;
     --color-connection: var(--color-secondary-periwinkle); /* lines between related photos */
 
     /* ── Neutrals ──────────────────────────────────────── */
