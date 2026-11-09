@@ -308,8 +308,6 @@ const Map = ({ geojsonData, isLoading }) => {
                 paint: {
                     'circle-radius': 8,
                     'circle-color': getToken('--color-marker', '#FFC5B3'),
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': getToken('--color-marker-stroke', '#ffffff')
                 }
             });
 
