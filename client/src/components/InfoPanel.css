@@ -4,7 +4,7 @@
     position: fixed;
     left: 16px;
     bottom: 44px;
-    z-index: 7;
+    z-index: 5;   /* same layer as the other bottom pills, under the photo card (6) so an open card covers it */
     display: flex;
     flex-direction: column;
     align-items: flex-start;

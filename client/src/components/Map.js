@@ -89,6 +89,7 @@ const Map = ({ geojsonData, isLoading }) => {
     const connectByRef = useRef(connectBy);
     connectByRef.current = connectBy;
     const [showLabels, setShowLabels] = useState(false); // country / city names on the globe, off by default
+    const [browseRecent, setBrowseRecent] = useState(false); // card arrows step through every dot, newest upload first
     const showLabelsRef = useRef(showLabels);
     showLabelsRef.current = showLabels;
 
@@ -223,11 +224,32 @@ const Map = ({ geojsonData, isLoading }) => {
     const swipeStartX = useRef(null);
     useEffect(() => { if (!selected) setViewerOpen(false); }, [selected]);
 
-    // Photos linked to the open one under the current filter, for prev / next
-    const related = useMemo(
-        () => (selected ? relatedPhotos(geojsonData, selected.props, connectBy) : []),
-        [geojsonData, selected, connectBy]
+    // Every dot, newest upload first (for "recent")
+    const recentOrder = useMemo(
+        () => [...(geojsonData?.features || [])].sort((a, b) =>
+            String(b.properties.created || '').localeCompare(String(a.properties.created || ''))),
+        [geojsonData]
     );
+
+    // What the card's arrows step through: every dot by recency in "recent" mode,
+    // otherwise the photos linked to the open one under the current filter
+    const related = useMemo(() => {
+        if (!selected) return [];
+        return browseRecent ? recentOrder : relatedPhotos(geojsonData, selected.props, connectBy);
+    }, [geojsonData, selected, connectBy, browseRecent, recentOrder]);
+    const stepLabel = browseRecent ? 'recent' : 'same ' + (connectBy === 'author' ? 'author' : 'day');
+
+    // "recent" ends when the card closes
+    useEffect(() => { if (!selected) setBrowseRecent(false); }, [selected]);
+
+    // Toggle "recent": on opens the newest upload, off returns the arrows to linked photos
+    const toggleRecent = () => {
+        if (browseRecent) { setBrowseRecent(false); return; }
+        const newest = recentOrder[0];
+        if (!newest) return;
+        setBrowseRecent(true);
+        openMarker(newest.properties, newest.geometry.coordinates);
+    };
     // Mapbox returns clicked positions slightly rounded, so match on the image URL (unique per
     // upload), falling back to name + date + approximate position.
     const relatedIndex = related.findIndex((f) => {
@@ -379,30 +401,60 @@ const Map = ({ geojsonData, isLoading }) => {
             <div className="explore-dots" aria-hidden="true" />
             {/* information: round "i" bottom left; /explore?info opens it on arrival */}
             <InfoPanel startOpen={infoOnArrival} closeSignal={selected} />
-            {/* place names toggle, bottom right above the connect-by filter */}
-            <button
-                type="button"
-                className={'labels-toggle' + (showLabels ? ' is-on' : '')}
-                aria-pressed={showLabels}
-                onClick={() => setShowLabels((v) => !v)}
-            >
-                {showLabels ? 'hide labels' : 'show labels'}
-            </button>
-            {/* connect-by filter, bottom right (above the Mapbox ⓘ) */}
-            <div className="connect-filter" role="radiogroup" aria-label="Connect photos by">
+            {/* bottom right: one column, so the button row and the connect-by filter are always the same width */}
+            <div className="map-controls">
+            {/* browse by recent, and the place-names toggle */}
+            <div className="map-toggles">
+                <button
+                    type="button"
+                    className={'map-toggle' + (browseRecent ? ' is-on' : '')}
+                    aria-pressed={browseRecent}
+                    onClick={toggleRecent}
+                >
+                    recent
+                </button>
+                <button
+                    type="button"
+                    className={'map-toggle' + (showLabels ? ' is-on' : '')}
+                    aria-pressed={showLabels}
+                    onClick={() => setShowLabels((v) => !v)}
+                >
+                    labels
+                </button>
+            </div>
+            {/* connect-by filter (above the Mapbox ⓘ) */}
+            <div className="connect-filter" role="group" aria-label="Connect photos by">
                 <span className="connect-filter-label">connect by</span>
-                {['date', 'author'].map((mode) => (
-                    <button
-                        key={mode}
-                        type="button"
-                        role="radio"
-                        aria-checked={connectBy === mode}
-                        className={'connect-filter-option' + (connectBy === mode ? ' is-active' : '')}
-                        onClick={() => setConnectBy(mode)}
-                    >
-                        {mode}
-                    </button>
-                ))}
+                {/* date ◧ author: a switch between the two; either word also picks its side */}
+                <button
+                    type="button"
+                    className={'connect-filter-option' + (connectBy === 'date' ? ' is-active' : '')}
+                    onClick={() => setConnectBy('date')}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                >
+                    date
+                </button>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={connectBy === 'author'}
+                    aria-label="connect by author (off: by date)"
+                    className={'connect-switch' + (connectBy === 'author' ? ' is-author' : '')}
+                    onClick={() => setConnectBy((m) => (m === 'author' ? 'date' : 'author'))}
+                >
+                    <span className="connect-switch-knob" aria-hidden="true" />
+                </button>
+                <button
+                    type="button"
+                    className={'connect-filter-option' + (connectBy === 'author' ? ' is-active' : '')}
+                    onClick={() => setConnectBy('author')}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                >
+                    author
+                </button>
+            </div>
             </div>
 
             {hoverName && !popupData && (
@@ -445,8 +497,8 @@ const Map = ({ geojsonData, isLoading }) => {
                     )}
 
                     <article className="marker-card" ref={cardRef} aria-label={popupData.owner || 'photo'}>
-                        <button type="button" className="marker-card-close" onClick={() => setSelected(null)} aria-label="close">
-                            &times;
+                        <button type="button" className="marker-card-close card-square" onClick={() => setSelected(null)} aria-label="close">
+                            <span className="card-square-icon is-cross" aria-hidden="true" />
                         </button>
 
                         {popupData.image && (
@@ -478,13 +530,22 @@ const Map = ({ geojsonData, isLoading }) => {
                             {popupData.story && <p className="marker-card-caption">{popupData.story}</p>}
                         </div>
 
-                        {canStep && (
-                            <nav className="marker-card-nav" aria-label={'photos linked by ' + connectBy}>
-                                <button type="button" className="marker-card-step" onClick={() => step(-1)} aria-label="previous linked photo">‹</button>
-                                <span className="marker-card-count">{relatedIndex + 1} of {related.length}</span>
-                                <button type="button" className="marker-card-step" onClick={() => step(1)} aria-label="next linked photo">›</button>
-                            </nav>
-                        )}
+                        {/* bottom row: linked-photo arrows on the left (when there are any), + to open full size on the right */}
+                        <div className="marker-card-foot">
+                            {canStep && (
+                                <nav className="marker-card-nav" aria-label={browseRecent ? 'all photos, newest first' : 'photos linked by ' + connectBy}>
+                                    <button type="button" className="marker-card-step" onClick={() => step(-1)} aria-label="previous linked photo">‹</button>
+                                    <span className="marker-card-count">{relatedIndex + 1} of {related.length} · {stepLabel}</span>
+                                    <button type="button" className="marker-card-step" onClick={() => step(1)} aria-label="next linked photo">›</button>
+                                </nav>
+                            )}
+                            {popupData.image && (
+                                <button type="button" className="marker-card-expand card-square" onClick={() => setViewerOpen(true)}
+                                        aria-label="open full size">
+                                    <span className="card-square-icon" aria-hidden="true" />
+                                </button>
+                            )}
+                        </div>
                     </article>
 
                     {/* full-screen view: big photo plus the full caption */}
@@ -503,8 +564,8 @@ const Map = ({ geojsonData, isLoading }) => {
                                 if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
                             }}
                         >
-                            <button type="button" className="photo-viewer-close" onClick={() => setViewerOpen(false)} aria-label="close">
-                                &times;
+                            <button type="button" className="photo-viewer-close card-square" onClick={() => setViewerOpen(false)} aria-label="close">
+                                <span className="card-square-icon is-cross" aria-hidden="true" />
                             </button>
                             <div className="photo-viewer-stage" onClick={(e) => e.target === e.currentTarget && setViewerOpen(false)}>
                                 <img
@@ -522,9 +583,9 @@ const Map = ({ geojsonData, isLoading }) => {
                                 </p>
                                 {popupData.story && <p className="photo-viewer-caption">{popupData.story}</p>}
                                 {canStep && (
-                                    <nav className="marker-card-nav" aria-label={'photos linked by ' + connectBy}>
+                                    <nav className="marker-card-nav" aria-label={browseRecent ? 'all photos, newest first' : 'photos linked by ' + connectBy}>
                                         <button type="button" className="marker-card-step" onClick={() => step(-1)} aria-label="previous photo">‹</button>
-                                        <span className="marker-card-count">{relatedIndex + 1} of {related.length}</span>
+                                        <span className="marker-card-count">{relatedIndex + 1} of {related.length} · {stepLabel}</span>
                                         <button type="button" className="marker-card-step" onClick={() => step(1)} aria-label="next photo">›</button>
                                     </nav>
                                 )}
