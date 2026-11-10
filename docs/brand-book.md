@@ -1,4 +1,4 @@
-<p align="center"><img src="../client/src/components/arkiv.svg" alt="arkiv" height="96"></p>
+<img src="brand-book-header.png" alt="arkiv: upload and explore" width="100%">
 
 <p align="center"><b>brand book</b></p>
 
