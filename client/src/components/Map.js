@@ -222,6 +222,7 @@ const Map = ({ geojsonData, isLoading }) => {
     // Full-screen photo viewer (opened from the card's photo)
     const [viewerOpen, setViewerOpen] = useState(false);
     const swipeStartX = useRef(null);
+    const cardSwipe = useRef(null); // { x, y } where a touch on the photo card began
     useEffect(() => { if (!selected) setViewerOpen(false); }, [selected]);
 
     // Every dot, newest upload first (for "recent")
@@ -496,7 +497,22 @@ const Map = ({ geojsonData, isLoading }) => {
                         <span className="marker-card-ring" style={{ left: dotPoint.x, top: dotPoint.y }} aria-hidden="true" />
                     )}
 
-                    <article className="marker-card" ref={cardRef} aria-label={popupData.owner || 'photo'}>
+                    <article
+                        className="marker-card"
+                        ref={cardRef}
+                        aria-label={popupData.owner || 'photo'}
+                        // phones: swipe the card sideways to step to the previous / next photo
+                        onTouchStart={(e) => { cardSwipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+                        onTouchEnd={(e) => {
+                            const start = cardSwipe.current;
+                            cardSwipe.current = null;
+                            if (!start || !canStep) return;
+                            const dx = e.changedTouches[0].clientX - start.x;
+                            const dy = e.changedTouches[0].clientY - start.y;
+                            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1);
+                        }}
+                    >
+                        {/* close ×, top-right corner of the card */}
                         <button type="button" className="marker-card-close card-square" onClick={() => setSelected(null)} aria-label="close">
                             <span className="card-square-icon is-cross" aria-hidden="true" />
                         </button>
@@ -530,7 +546,7 @@ const Map = ({ geojsonData, isLoading }) => {
                             {popupData.story && <p className="marker-card-caption">{popupData.story}</p>}
                         </div>
 
-                        {/* bottom row: linked-photo arrows on the left (when there are any), + to open full size on the right */}
+                        {/* bottom bar: arrows + count on the left (when there are linked photos), + (full size) on the right */}
                         <div className="marker-card-foot">
                             {canStep && (
                                 <nav className="marker-card-nav" aria-label={browseRecent ? 'all photos, newest first' : 'photos linked by ' + connectBy}>
