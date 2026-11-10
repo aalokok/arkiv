@@ -4,7 +4,7 @@
 
 <p align="center"><b>a shared photo archive, pinned to the globe.</b></p>
 
-<p align="center"><a href="https://aaarkivvv.vercel.app">aaarkivvv.vercel.app</a></p>
+<p align="center"><a href="https://aaarkivvv.vercel.app">aaarkivvv.vercel.app</a> · <a href="docs/brand-book.md">brand book</a></p>
 
 ---
 
