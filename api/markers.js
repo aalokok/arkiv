@@ -43,7 +43,9 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET') {
         try {
-            const markers = await Marker.find().lean();
+            // Only what the site shows. Never send email (or the unused equipment field): they stay
+            // in the database but are never handed to visitors.
+            const markers = await Marker.find({}, 'owner photographer story date country image location').lean();
             return res.status(200).json({
                 type: 'FeatureCollection',
                 features: markers.map((marker) => ({
@@ -55,8 +57,6 @@ module.exports = async (req, res) => {
                         date: marker.date,
                         country: marker.country,
                         photographer: marker.photographer,
-                        email: marker.email,
-                        equipment: marker.equipment,
                         image: marker.image,
                         // upload time, read from the MongoDB id (ids carry their creation time),
                         // so older entries have it too; used to browse "recent"
