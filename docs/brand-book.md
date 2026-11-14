@@ -47,6 +47,8 @@ The names below match the CSS custom properties in `client/src/styles/tokens.css
 
 ## colour
 
+![the arkiv colour palette](brand-book/colours.png)
+
 | role | token | use |
 | --- | --- | --- |
 | land | `brand-lime` #D6FFB2 | land on the globe, accents. Not for text. |
@@ -65,6 +67,8 @@ The names below match the CSS custom properties in `client/src/styles/tokens.css
 - Page background: a lime-to-periwinkle radial gradient behind every page, scaling between 0.85 and 1.15 over 10s. Disabled with reduced motion.
 
 ## type
+
+![arkiv type styles set in ABC Areal](brand-book/type.png)
 
 ABC Areal (Dinamo) at 400, 400 italic, 500 and 700. ABC Areal Mono at 400 and 700 for data. The fonts are licensed from Dinamo; the terms are in `client/src/fonts/`.
 
@@ -100,7 +104,7 @@ There is no icon set. +, × and the expand + are drawn in CSS. ‹ and › are t
 
 ## logo
 
-<img src="../client/src/components/arkiv.svg" alt="arkiv" height="64">
+![the arkiv wordmark in its four uses](brand-book/logo.png)
 
 
 `client/src/components/arkiv.svg`: lowercase italic wordmark, 275 × 100, filled `gray` (#AEAEAE). On the landing page it is applied as a CSS mask and painted white or in the half's text colour. Use the file unchanged.
@@ -108,6 +112,8 @@ There is no icon set. +, × and the expand + are drawn in CSS. ‹ and › are t
 ## components
 
 ### square button
+
+![square button](brand-book/square-button.png)
 
 The icon button: a white square with a 1px `brand-periwinkle` border and a + drawn from two bars. Turned 45°, the same + is the close ×.
 
@@ -120,6 +126,8 @@ Source: `Header.css` (.nav-plus), `Map.css` (.card-square).
 
 ### button
 
+![button](brand-book/button.png)
+
 The outlined text button, used once per view for the main action (upload, see it, next). Same style as the square button: white fill, 1px `accent-text` border, square corners and the `button` text style (22px bold, lowercase).
 
 - Hover adds `brand-peach` at 35%.
@@ -130,11 +138,15 @@ Source: `UploadForm.css` (.upload-button).
 
 ### text link
 
+![text link](brand-book/text-link.png)
+
 An inline action or link in `accent-text`, 15px bold, lowercase. A 1px underline grows in from the left on hover or focus. External links end in ↗.
 
 Source: `InfoPanel.css` (.info-link), `UploadForm.css` (.upload-link).
 
 ### map toggle
+
+![map toggle](brand-book/map-toggle.png)
 
 A plain-text toggle: an 11px square (`size-toggle`) and a word. Off is a gray outline. On fills the square and turns square and word `accent-text`. Used for recent and labels, stacked in the bottom-right corner so the squares line up.
 
@@ -144,6 +156,8 @@ Source: `Map.css` (.map-toggle).
 
 ### connect switch
 
+![connect switch](brand-book/connect-switch.png)
+
 Chooses what links photos on the globe: date (photos from the same day) or author (one person's photos, in date order). It's a square track with a square knob that slides to the chosen side, and each word also selects its side. The chosen word is `accent-text`.
 
 On phones the "connect by" label is dropped so the switch fits on one row with the information pill.
@@ -151,6 +165,8 @@ On phones the "connect by" label is dropped so the switch fits on one row with t
 Source: `Map.css` (.connect-filter, .connect-switch).
 
 ### information pill
+
+![information pill](brand-book/info-pill.png)
 
 Opens the information popup on explore. 40px tall (`size-pill-height`) with a 1px `divider` border that turns `accent-text` when open. It sits bottom-left, `space-edge` from the edges.
 
@@ -160,6 +176,8 @@ Source: `InfoPanel.css`.
 
 ### tooltip
 
+![tooltip](brand-book/tooltip.png)
+
 The hover preview on a photo dot: the title only, 15px bold lowercase in `gray`, in a white box with a 1px `divider` border. It sits 14px right of the dot and flips to the left within 290px of the right edge. It never takes pointer events.
 
 The dot itself is `marker` at `size-marker` (8px radius), flat, with no outline.
@@ -167,6 +185,8 @@ The dot itself is `marker` at `size-marker` (8px radius), flat, with no outline.
 Source: `Map.css` (.marker-tooltip).
 
 ### photo card
+
+![photo card](brand-book/photo-card.png)
 
 Opens when a dot is clicked. Contents: the photo, then a white text box with the title, one meta line and the caption, then a bottom row with the arrows and the full-size button.
 
@@ -183,6 +203,8 @@ Source: `Map.css` (.marker-card), `Map.js`.
 
 ### text field
 
+![text field](brand-book/text-field.png)
+
 An upload form field: a 14px bold `gray` label over an underlined input. Typed text is 22px bold `text` (18–22px with screen height). The placeholder is `divider`.
 
 - Focus turns the underline `accent-text`. Invalid turns it `brand-peach`, with a 14px bold `error` message under the field.
@@ -192,6 +214,8 @@ An upload form field: a 14px bold `gray` label over an underlined input. Typed t
 Source: `UploadForm.css` (.upload-field, .upload-error).
 
 ### drop zone
+
+![drop zone](brand-book/drop-zone.png)
 
 The photo box on the upload page: a 1px dashed `divider` border with a blurred `gray-light` image icon at rest. On hover or drag the border and icon turn `accent-text`, the icon blur is removed and a periwinkle radial gradient (22%) fills the box.
 
