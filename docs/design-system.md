@@ -1,16 +1,16 @@
-<img src="brand-book-header.png" alt="arkiv: upload and explore" width="100%">
+<img src="design-system-header.png" alt="arkiv: upload and explore" width="100%">
 
-<p align="center"><b>brand book</b></p>
+<p align="center"><b>design system</b></p>
 
 ---
 
-arkiv is a web app for pinning photos to a 3D globe. This brand book covers the v2 interface: colour, type, shape, layout, motion and the components used on the landing, explore and upload pages. Values come from `client/src/styles/tokens.css`, which the stylesheets and the globe both read.
+arkiv is a web app for pinning photos to a 3D globe. This design system covers the v2 interface: colour, type, shape, layout, motion and the components used on the landing, explore and upload pages. Values come from `client/src/styles/tokens.css`, which the stylesheets and the globe both read.
 
 ## token names
 
 The names below match the CSS custom properties in `client/src/styles/tokens.css`. `error` and `glacier` are set directly in `UploadForm.css` and `client/src/styles/mapTheme.js`. Spacing and size values are set in each component's CSS.
 
-| name in this book | css variable | value |
+| name | css variable | value |
 | --- | --- | --- |
 | `brand-lime` | `--color-primary` | #D6FFB2 |
 | `brand-peach` | `--color-secondary-peach` | #FFC5B3 |
@@ -47,7 +47,7 @@ The names below match the CSS custom properties in `client/src/styles/tokens.css
 
 ## colour
 
-![the arkiv colour palette](brand-book/colours.png)
+![the arkiv colour palette](design-system/colours.png)
 
 | role | token | use |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ The names below match the CSS custom properties in `client/src/styles/tokens.css
 
 ## type
 
-![arkiv type styles set in ABC Areal](brand-book/type.png)
+![arkiv type styles set in ABC Areal](design-system/type.png)
 
 ABC Areal (Dinamo) at 400, 400 italic, 500 and 700. ABC Areal Mono at 400 and 700 for data. The fonts are licensed from Dinamo; the terms are in `client/src/fonts/`.
 
@@ -76,13 +76,54 @@ ABC Areal (Dinamo) at 400, 400 italic, 500 and 700. ABC Areal Mono at 400 and 70
 - 400 for reading text: card meta, captions, popup text.
 - The photo card uses 15px for every line. Weight separates title from meta and caption.
 
-## shape and layout
+## shape
 
 - All radius tokens are 0.
 - Icon buttons are a white square with a 1px `brand-periwinkle` border and a + drawn from two bars. The close × is the same + rotated 45°.
-- Fixed controls sit `space-edge` (16px) from the screen edge: information bottom-left, map controls bottom-right.
-- Minimum tap target on phones: `tap-target` (44px).
 - Only the information popup has a shadow (`shadow-popup`).
+
+## layout and spacing
+
+Every view fits the viewport (`100dvh`) with no page scroll. Spacing is set per component in px; there is no numbered scale. The values that repeat: 8px (phone screen edge), 10px (card padding, control gaps), 16px (screen edge on desktop), 44px (bottom offset of fixed controls, clearing the Mapbox logo).
+
+![explore layout on desktop and phone](design-system/layout.png)
+
+### breakpoints
+
+| width | changes |
+| --- | --- |
+| ≤ 768px | header padding 12px 15px, logo 32px tall, nav 20px, + button 40px |
+| ≤ 760px | upload becomes one column, split into two steps |
+| ≤ 700px | landing halves stack; photo card becomes a bottom sheet; 44px tap targets; map controls inset 12px |
+| ≤ 480px | logo 26px tall, nav 16px, + button 34px |
+| `hover: none` | landing halves keep their resting colours |
+
+### header
+
+- Fixed to the top. Padding 16px 20px. Logo 40px tall. Nav items separated by a 2px × 22px rule with 10px either side. + button 48px, pushed right.
+
+### explore
+
+- The globe fills the viewport behind everything. Background dot grid at a 120px pitch.
+- Photo card: width `min(500px, 50vw − 64px)`, left edge at `50% + 40px`, top 84px. Max height `min(880px, 100vh − 206px)`, so it stops 12px above the map controls. Padding 10px around the photo and text box; 14px inside the text box.
+- Opening a photo moves the globe so the dot sits 18% of the viewport width left of centre (desktop) or 22% of the height above centre (phone).
+- Information pill: left 16px, bottom 44px. Map controls: right 16px, bottom 44px, stacked with a 10px gap.
+- Phone (≤ 700px): the card is a sheet 8px from the left, right and bottom edges, max height 74dvh. Close, full-size and arrow buttons are 44px. Map controls move to 12px from the right.
+
+### upload
+
+- Desktop: two columns, details at `minmax(320px, 460px)` and the pin globe at `1fr`. Column gap `clamp(24px, 4vw, 64px)`; side padding `clamp(16px, 4vw, 56px)`.
+- Details column: fields stacked with a `clamp(10px, 2vh, 20px)` gap. The drop zone takes whatever height is left.
+- ≤ 760px: one column in two steps (photo & details, then location).
+
+### landing
+
+- Two equal columns, each a full-height half. ≤ 700px: two equal rows.
+- Drifting word: 110px; on phones `clamp(72px, 22vw, 110px)`. Logo on phones: `clamp(130px, 40vw, 180px)` wide.
+
+### full-screen photo view
+
+- Padding 56px 28px 28px, 28px gap between photo and caption. Side by side on desktop, stacked on phones.
 
 ## globe
 
@@ -104,7 +145,7 @@ There is no icon set. +, × and the expand + are drawn in CSS. ‹ and › are t
 
 ## logo
 
-![the arkiv wordmark in its four uses](brand-book/logo.png)
+![the arkiv wordmark in its four uses](design-system/logo.png)
 
 
 `client/src/components/arkiv.svg`: lowercase italic wordmark, 275 × 100, filled `gray` (#AEAEAE). On the landing page it is applied as a CSS mask and painted white or in the half's text colour. Use the file unchanged.
@@ -113,7 +154,7 @@ There is no icon set. +, × and the expand + are drawn in CSS. ‹ and › are t
 
 ### square button
 
-![square button](brand-book/square-button.png)
+![square button](design-system/square-button.png)
 
 The icon button: a white square with a 1px `brand-periwinkle` border and a + drawn from two bars. Turned 45°, the same + is the close ×.
 
@@ -126,7 +167,7 @@ Source: `Header.css` (.nav-plus), `Map.css` (.card-square).
 
 ### button
 
-![button](brand-book/button.png)
+![button](design-system/button.png)
 
 The outlined text button, used once per view for the main action (upload, see it, next). Same style as the square button: white fill, 1px `accent-text` border, square corners and the `button` text style (22px bold, lowercase).
 
@@ -138,7 +179,7 @@ Source: `UploadForm.css` (.upload-button).
 
 ### text link
 
-![text link](brand-book/text-link.png)
+![text link](design-system/text-link.png)
 
 An inline action or link in `accent-text`, 15px bold, lowercase. A 1px underline grows in from the left on hover or focus. External links end in ↗.
 
@@ -146,7 +187,7 @@ Source: `InfoPanel.css` (.info-link), `UploadForm.css` (.upload-link).
 
 ### map toggle
 
-![map toggle](brand-book/map-toggle.png)
+![map toggle](design-system/map-toggle.png)
 
 A plain-text toggle: an 11px square (`size-toggle`) and a word. Off is a gray outline. On fills the square and turns square and word `accent-text`. Used for recent and labels, stacked in the bottom-right corner so the squares line up.
 
@@ -156,7 +197,7 @@ Source: `Map.css` (.map-toggle).
 
 ### connect switch
 
-![connect switch](brand-book/connect-switch.png)
+![connect switch](design-system/connect-switch.png)
 
 Chooses what links photos on the globe: date (photos from the same day) or author (one person's photos, in date order). It's a square track with a square knob that slides to the chosen side, and each word also selects its side. The chosen word is `accent-text`.
 
@@ -166,7 +207,7 @@ Source: `Map.css` (.connect-filter, .connect-switch).
 
 ### information pill
 
-![information pill](brand-book/info-pill.png)
+![information pill](design-system/info-pill.png)
 
 Opens the information popup on explore. 40px tall (`size-pill-height`) with a 1px `divider` border that turns `accent-text` when open. It sits bottom-left, `space-edge` from the edges.
 
@@ -176,7 +217,7 @@ Source: `InfoPanel.css`.
 
 ### tooltip
 
-![tooltip](brand-book/tooltip.png)
+![tooltip](design-system/tooltip.png)
 
 The hover preview on a photo dot: the title only, 15px bold lowercase in `gray`, in a white box with a 1px `divider` border. It sits 14px right of the dot and flips to the left within 290px of the right edge. It never takes pointer events.
 
@@ -186,7 +227,7 @@ Source: `Map.css` (.marker-tooltip).
 
 ### photo card
 
-![photo card](brand-book/photo-card.png)
+![photo card](design-system/photo-card.png)
 
 Opens when a dot is clicked. Contents: the photo, then a white text box with the title, one meta line and the caption, then a bottom row with the arrows and the full-size button.
 
@@ -203,7 +244,7 @@ Source: `Map.css` (.marker-card), `Map.js`.
 
 ### text field
 
-![text field](brand-book/text-field.png)
+![text field](design-system/text-field.png)
 
 An upload form field: a 14px bold `gray` label over an underlined input. Typed text is 22px bold `text` (18–22px with screen height). The placeholder is `divider`.
 
@@ -215,7 +256,7 @@ Source: `UploadForm.css` (.upload-field, .upload-error).
 
 ### drop zone
 
-![drop zone](brand-book/drop-zone.png)
+![drop zone](design-system/drop-zone.png)
 
 The photo box on the upload page: a 1px dashed `divider` border with a blurred `gray-light` image icon at rest. On hover or drag the border and icon turn `accent-text`, the icon blur is removed and a periwinkle radial gradient (22%) fills the box.
 
